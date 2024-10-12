@@ -1,0 +1,622 @@
+<html><head><base href="https://websim.example.com/three-js-planet-idle-v7/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Advanced Three.js Planet Idle Game with Zoom and Animals</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Roboto', sans-serif;
+    background-color: #0f0f1f;
+    color: #e0e0e0;
+  }
+  #game-container {
+    position: relative;
+    width: 100%;
+    height: calc(100% - 60px);
+  }
+  #mobile-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: rgba(20, 20, 40, 0.8);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+  }
+  .nav-btn {
+    background: none;
+    border: none;
+    color: #e0e0e0;
+    font-size: 16px;
+    padding: 10px;
+    cursor: pointer;
+  }
+  .nav-btn.active {
+    color: #00ccff;
+    border-bottom: 2px solid #00ccff;
+  }
+  #tab-content {
+    height: 100%;
+  }
+  .tab-pane {
+    display: none;
+    height: 100%;
+    overflow-y: auto;
+  }
+  .tab-pane.active {
+    display: block;
+  }
+  #hud {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    max-width: 80%;
+    margin: 0;
+    padding: 15px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
+    text-align: center;
+  }
+  #upgrades {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    margin: 10px;
+  }
+  #sidebar {
+    position: relative;
+    width: auto;
+    height: auto;
+    margin: 10px;
+  }
+  #life-counter {
+    font-size: 28px;
+    margin-bottom: 8px;
+    color: #00ff9d;
+    text-shadow: 0 0 10px #00ff9d;
+  }
+  #humans-counter, #animals-counter, #lps-counter {
+    font-size: 16px;
+    margin-bottom: 4px;
+    color: #00ccff;
+  }
+  #time-counter {
+    font-size: 14px;
+    margin-top: 8px;
+    color: #ffd700;
+  }
+  .upgrade-btn {
+    margin: 5px 0;
+    padding: 12px 20px;
+    background-color: #4a4a8a;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s;
+    font-size: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    text-align: left;
+  }
+  .upgrade-btn:hover {
+    background-color: #5a5a9a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+  }
+  #game-controls {
+    display: flex;
+    flex-direction: column;
+  }
+  .game-btn {
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #4a4a8a;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s;
+    font-size: 14px;
+  }
+  .game-btn:hover {
+    background-color: #5a5a9a;
+  }
+
+  .click-text {
+    position: absolute;
+    font-size: 20px;
+    color: #00ff00;
+    pointer-events: none;
+    z-index: 1000;
+  }
+  .life-particle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #00ff00;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  @media (max-width: 768px) {
+    #game-container {
+      height: calc(100% - 60px);
+    }
+    #hud {
+      max-width: 90%;
+      padding: 10px;
+    }
+    #life-counter {
+      font-size: 24px;
+    }
+    #humans-counter, #animals-counter, #lps-counter {
+      font-size: 14px;
+    }
+    #time-counter {
+      font-size: 12px;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="mobile-nav">
+  <button class="nav-btn active" data-tab="home">Home</button>
+  <button class="nav-btn" data-tab="creativity">Creativity</button>
+  <button class="nav-btn" data-tab="options">Options</button>
+</div>
+<div id="tab-content">
+  <div id="home-tab" class="tab-pane active">
+    <div id="game-container">
+      <div id="hud">
+        <div id="life-counter">Life: 0</div>
+        <div id="humans-counter">Humans: 0</div>
+        <div id="animals-counter">Animals: 0</div>
+        <div id="lps-counter">Life per second: 0</div>
+        <div id="time-counter">Year 0, Day 0, 00:00:00</div>
+      </div>
+    </div>
+  </div>
+  <div id="creativity-tab" class="tab-pane">
+    <div id="upgrades">
+      <button class="upgrade-btn" id="planet-upgrade">Upgrade Planet (Cost: 10 Life)</button>
+      <button class="upgrade-btn" id="human-upgrade">Create Humans (Cost: 100 Life)</button>
+      <button class="upgrade-btn" id="animal-upgrade">Create Animals (Cost: 50 Life)</button>
+      <button class="upgrade-btn" id="click-upgrade">Upgrade Click (Cost: 50 Life)</button>
+    </div>
+  </div>
+  <div id="options-tab" class="tab-pane">
+    <div id="sidebar">
+      <div>
+        <div id="zoom-info">Zoom: Z (in) / O (out)</div>
+        <div id="human-activity">Human Activity: Idle</div>
+      </div>
+      <div id="game-controls">
+        <button class="game-btn" id="save-game">Save Game</button>
+        <button class="game-btn" id="reset-game">Reset Game</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+let life = 0;
+let humans = 0;
+let animals = 0;
+let planetsProduced = 0;
+let lifePerSecond = 0;
+let lifePerClick = 1;
+let planetUpgradeCost = 10;
+let humanUpgradeCost = 100;
+let animalUpgradeCost = 50;
+let clickUpgradeCost = 50;
+
+// Time variables
+let gameSeconds = 0;
+let gameDays = 0;
+let gameYears = 0;
+
+// Initialize Three.js scene
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('game-container').appendChild(renderer.domElement);
+
+// Create a starfield background
+const starsGeometry = new THREE.BufferGeometry();
+const starsMaterial = new THREE.PointsMaterial({color: 0xFFFFFF, size: 0.1});
+
+const starsVertices = [];
+for (let i = 0; i < 10000; i++) {
+  const x = (Math.random() - 0.5) * 2000;
+  const y = (Math.random() - 0.5) * 2000;
+  const z = (Math.random() - 0.5) * 2000;
+  starsVertices.push(x, y, z);
+}
+
+starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+const starField = new THREE.Points(starsGeometry, starsMaterial);
+scene.add(starField);
+
+// Create Earth
+const earthGeometry = new THREE.SphereGeometry(1, 64, 64);
+const earthMaterial = new THREE.MeshPhongMaterial({
+  map: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'),
+  bumpMap: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_normal_2048.jpg'),
+  bumpScale: 0.05,
+  specularMap: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_specular_2048.jpg'),
+  specular: new THREE.Color('grey')
+});
+const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+scene.add(earth);
+
+// Add clouds
+const cloudGeometry = new THREE.SphereGeometry(1.01, 64, 64);
+const cloudMaterial = new THREE.MeshPhongMaterial({
+  map: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png'),
+  transparent: true,
+  opacity: 0.8
+});
+const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
+earth.add(clouds);
+
+// Add ambient light
+const ambientLight = new THREE.AmbientLight(0x404040);
+scene.add(ambientLight);
+
+// Add directional light (sun)
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.position.set(5, 3, 5);
+scene.add(directionalLight);
+
+camera.position.z = 5;
+
+// Planet rotation
+const rotationSpeed = 0.001; // Earth's rotation speed
+
+// Mouse interaction variables
+let isDragging = false;
+let previousMousePosition = {
+    x: 0,
+    y: 0
+};
+
+// Zoom variables
+let targetZoom = 5;
+const zoomSpeed = 0.1;
+const minZoom = 2;
+const maxZoom = 10;
+
+// Update time counter
+function updateTimeCounter() {
+  gameSeconds++;
+  if (gameSeconds >= 86400) {
+    gameSeconds = 0;
+    gameDays++;
+    if (gameDays >= 365) {
+      gameDays = 0;
+      gameYears++;
+    }
+  }
+
+  const hours = Math.floor(gameSeconds / 3600);
+  const minutes = Math.floor((gameSeconds % 3600) / 60);
+  const seconds = gameSeconds % 60;
+
+  const timeString = `Year ${gameYears}, Day ${gameDays}, ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  document.getElementById('time-counter').textContent = timeString;
+}
+
+// Animation loop
+function animate() {
+    requestAnimationFrame(animate);
+
+    // Rotate Earth on its axis
+    earth.rotation.y += rotationSpeed;
+    clouds.rotation.y += rotationSpeed * 1.1;
+
+    // Smooth zoom
+    camera.position.z += (targetZoom - camera.position.z) * zoomSpeed;
+
+    // Update time counter
+    updateTimeCounter();
+
+    renderer.render(scene, camera);
+}
+animate();
+
+// Mouse-based rotation
+renderer.domElement.addEventListener('mousedown', (e) => {
+    isDragging = true;
+});
+
+renderer.domElement.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+        const deltaMove = {
+            x: e.offsetX - previousMousePosition.x,
+            y: e.offsetY - previousMousePosition.y
+        };
+
+        earth.rotation.y += deltaMove.x * 0.005;
+        earth.rotation.x += deltaMove.y * 0.005;
+    }
+
+    previousMousePosition = {
+        x: e.offsetX,
+        y: e.offsetY
+    };
+});
+
+renderer.domElement.addEventListener('mouseup', (e) => {
+    isDragging = false;
+});
+
+// Touch events
+function handleTouchStart(event) {
+  isDragging = true;
+  previousMousePosition = {
+    x: event.touches[0].clientX,
+    y: event.touches[0].clientY
+  };
+}
+
+function handleTouchMove(event) {
+  if (isDragging) {
+    const deltaMove = {
+      x: event.touches[0].clientX - previousMousePosition.x,
+      y: event.touches[0].clientY - previousMousePosition.y
+    };
+
+    earth.rotation.y += deltaMove.x * 0.005;
+    earth.rotation.x += deltaMove.y * 0.005;
+
+    previousMousePosition = {
+      x: event.touches[0].clientX,
+      y: event.touches[0].clientY
+    };
+  }
+}
+
+function handleTouchEnd() {
+  isDragging = false;
+}
+
+// Add touch event listeners
+renderer.domElement.addEventListener('touchstart', handleTouchStart, false);
+renderer.domElement.addEventListener('touchmove', handleTouchMove, false);
+renderer.domElement.addEventListener('touchend', handleTouchEnd, false);
+
+// Zoom controls
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'z') {
+        targetZoom = Math.max(targetZoom - 0.5, minZoom);
+    } else if (e.key === 'o') {
+        targetZoom = Math.min(targetZoom + 0.5, maxZoom);
+    }
+});
+
+// Game logic
+function updateCounters() {
+  document.getElementById('life-counter').textContent = `Life: ${Math.floor(life)}`;
+  document.getElementById('humans-counter').textContent = `Humans: ${humans}`;
+  document.getElementById('animals-counter').textContent = `Animals: ${animals}`;
+  document.getElementById('lps-counter').textContent = `Life per second: ${lifePerSecond.toFixed(1)}`;
+}
+
+function upgradePlanet() {
+  if (life >= planetUpgradeCost) {
+    life -= planetUpgradeCost;
+    planetsProduced++;
+    lifePerSecond += 0.1;
+    planetUpgradeCost = Math.floor(planetUpgradeCost * 1.5);
+    document.getElementById('planet-upgrade').textContent = `Upgrade Planet (Cost: ${planetUpgradeCost} Life)`;
+    updateCounters();
+  }
+}
+
+function createHumans() {
+  if (life >= humanUpgradeCost) {
+    life -= humanUpgradeCost;
+    humans += 10;
+    lifePerSecond += 1;
+    humanUpgradeCost = Math.floor(humanUpgradeCost * 1.5);
+    document.getElementById('human-upgrade').textContent = `Create Humans (Cost: ${humanUpgradeCost} Life)`;
+    updateCounters();
+  }
+}
+
+function createAnimals() {
+  if (life >= animalUpgradeCost) {
+    life -= animalUpgradeCost;
+    animals += 5;
+    lifePerSecond += 0.5;
+    animalUpgradeCost = Math.floor(animalUpgradeCost * 1.3);
+    document.getElementById('animal-upgrade').textContent = `Create Animals (Cost: ${animalUpgradeCost} Life)`;
+    updateCounters();
+  }
+}
+
+function upgradeClick() {
+  if (life >= clickUpgradeCost) {
+    life -= clickUpgradeCost;
+    lifePerClick += 1;
+    clickUpgradeCost = Math.floor(clickUpgradeCost * 1.5);
+    document.getElementById('click-upgrade').textContent = `Upgrade Click (Cost: ${clickUpgradeCost} Life)`;
+    updateCounters();
+  }
+}
+
+document.getElementById('planet-upgrade').addEventListener('click', upgradePlanet);
+document.getElementById('human-upgrade').addEventListener('click', createHumans);
+document.getElementById('animal-upgrade').addEventListener('click', createAnimals);
+document.getElementById('click-upgrade').addEventListener('click', upgradeClick);
+
+// Click and Touch event for generating life
+document.getElementById('game-container').addEventListener('click', handleClick);
+document.getElementById('game-container').addEventListener('touchstart', handleClick);
+
+function handleClick(event) {
+  event.preventDefault(); // Prevent default touch behavior
+  const x = event.clientX || (event.touches && event.touches[0].clientX);
+  const y = event.clientY || (event.touches && event.touches[0].clientY);
+
+  if (x === undefined || y === undefined) return;
+
+  life += lifePerClick;
+  updateCounters();
+  
+  // Create click text
+  const clickText = document.createElement('div');
+  clickText.textContent = `+${lifePerClick}`;
+  clickText.classList.add('click-text');
+  clickText.style.left = `${x}px`;
+  clickText.style.top = `${y}px`;
+  document.body.appendChild(clickText);
+
+  // Animate click text
+  gsap.to(clickText, {
+    opacity: 0,
+    y: -50,
+    duration: 1,
+    onComplete: () => clickText.remove()
+  });
+
+  // Create life particle
+  const particle = document.createElement('div');
+  particle.classList.add('life-particle');
+  particle.style.left = `${x}px`;
+  particle.style.top = `${y}px`;
+  document.body.appendChild(particle);
+
+  // Get the position of the life counter
+  const lifeCounter = document.getElementById('life-counter');
+  const lifeCounterRect = lifeCounter.getBoundingClientRect();
+  const targetX = lifeCounterRect.left + lifeCounterRect.width / 2;
+  const targetY = lifeCounterRect.top + lifeCounterRect.height / 2;
+
+  // Calculate the distance and duration based on the distance
+  const distance = Math.sqrt(Math.pow(targetX - x, 2) + Math.pow(targetY - y, 2));
+  const duration = Math.min(1, distance / 500);
+
+  // Animate life particle
+  gsap.to(particle, {
+    x: targetX - x,
+    y: targetY - y,
+    opacity: 0,
+    duration: duration,
+    ease: 'power1.in',
+    onComplete: () => particle.remove()
+  });
+}
+
+// Auto-generate life
+setInterval(() => {
+  life += lifePerSecond;
+  updateCounters();
+}, 1000);
+
+// Local Storage
+function saveGame() {
+  const gameState = {
+    life,
+    humans,
+    animals,
+    planetsProduced,
+    lifePerSecond,
+    lifePerClick,
+    planetUpgradeCost,
+    humanUpgradeCost,
+    animalUpgradeCost,
+    clickUpgradeCost,
+    gameSeconds,
+    gameDays,
+    gameYears
+  };
+  localStorage.setItem('planetIdleGame', JSON.stringify(gameState));
+}
+
+function loadGame() {
+  const savedState = localStorage.getItem('planetIdleGame');
+  if (savedState) {
+    const gameState = JSON.parse(savedState);
+    life = gameState.life;
+    humans = gameState.humans;
+    animals = gameState.animals;
+    planetsProduced = gameState.planetsProduced;
+    lifePerSecond = gameState.lifePerSecond;
+    lifePerClick = gameState.lifePerClick;
+    planetUpgradeCost = gameState.planetUpgradeCost;
+    humanUpgradeCost = gameState.humanUpgradeCost;
+    animalUpgradeCost = gameState.animalUpgradeCost;
+    clickUpgradeCost = gameState.clickUpgradeCost || 50;
+    gameSeconds = gameState.gameSeconds || 0;
+    gameDays = gameState.gameDays || 0;
+    gameYears = gameState.gameYears || 0;
+    updateCounters();
+    document.getElementById('planet-upgrade').textContent = `Upgrade Planet (Cost: ${planetUpgradeCost} Life)`;
+    document.getElementById('human-upgrade').textContent = `Create Humans (Cost: ${humanUpgradeCost} Life)`;
+    document.getElementById('animal-upgrade').textContent = `Create Animals (Cost: ${animalUpgradeCost} Life)`;
+    document.getElementById('click-upgrade').textContent = `Upgrade Click (Cost: ${clickUpgradeCost} Life)`;
+    updateTimeCounter();
+  }
+}
+
+// Auto-save every 30 seconds
+setInterval(saveGame, 30000);
+
+// Load game on start
+loadGame();
+
+// Reset game function
+document.getElementById('reset-game').addEventListener('click', resetGame);
+
+function resetGame() {
+  if (confirm('Are you sure you want to reset the game? All progress will be lost.')) {
+    localStorage.removeItem('planetIdleGame');
+    location.reload();
+  }
+}
+
+// Resize handler
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Mobile Tabs Initialization
+function initMobileTabs() {
+  const navButtons = document.querySelectorAll('.nav-btn');
+  const tabPanes = document.querySelectorAll('.tab-pane');
+
+  navButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabName = btn.getAttribute('data-tab');
+      
+      navButtons.forEach(b => b.classList.remove('active'));
+      tabPanes.forEach(p => p.classList.remove('active'));
+
+      btn.classList.add('active');
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+    });
+  });
+}
+
+// Call this function after the DOM is loaded
+document.addEventListener('DOMContentLoaded', initMobileTabs);
+</script>
+</body>
+</html>
