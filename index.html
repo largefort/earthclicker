@@ -27,7 +27,8 @@
     left: 0;
     right: 0;
     height: 60px;
-    background-color: rgba(20, 20, 40, 0.8);
+    background-color: rgba(20, 20, 40, 0.9);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
     display: flex;
     justify-content: space-around;
     align-items: center;
@@ -37,13 +38,16 @@
     background: none;
     border: none;
     color: #e0e0e0;
-    font-size: 16px;
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
     padding: 10px;
     cursor: pointer;
+    transition: all 0.3s ease;
   }
   .nav-btn.active {
     color: #00ccff;
-    border-bottom: 2px solid #00ccff;
+    border-bottom: 3px solid #00ccff;
   }
   #tab-content {
     height: 100%;
@@ -69,17 +73,49 @@
     border-radius: 10px;
     text-align: center;
   }
-  #upgrades {
-    position: relative;
-    bottom: auto;
-    left: auto;
+  #upgrades, #sidebar {
+    background-color: rgba(74, 74, 138, 0.9);
+    border-radius: 10px;
     margin: 10px;
+    padding: 15px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
   }
-  #sidebar {
-    position: relative;
-    width: auto;
-    height: auto;
-    margin: 10px;
+  .upgrade-btn {
+    margin: 5px;
+    padding: 10px;
+    background-color: #4a4a8a;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s;
+    font-size: 14px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+  }
+  .upgrade-btn:hover {
+    background-color: #5a5a9a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+  }
+  #upgrade-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    padding-bottom: 70px;
+  }
+  #game-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    padding-bottom: 70px;
   }
   #life-counter {
     font-size: 28px;
@@ -97,44 +133,6 @@
     margin-top: 8px;
     color: #ffd700;
   }
-  .upgrade-btn {
-    margin: 5px 0;
-    padding: 12px 20px;
-    background-color: #4a4a8a;
-    color: white;
-    border: none;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.3s;
-    font-size: 16px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    text-align: left;
-  }
-  .upgrade-btn:hover {
-    background-color: #5a5a9a;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-  }
-  #game-controls {
-    display: flex;
-    flex-direction: column;
-  }
-  .game-btn {
-    margin-bottom: 10px;
-    padding: 10px;
-    background-color: #4a4a8a;
-    color: white;
-    border: none;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.3s;
-    font-size: 14px;
-  }
-  .game-btn:hover {
-    background-color: #5a5a9a;
-  }
-
   .click-text {
     position: absolute;
     font-size: 20px;
@@ -151,7 +149,6 @@
     pointer-events: none;
     z-index: 1000;
   }
-
   @media (max-width: 768px) {
     #game-container {
       height: calc(100% - 60px);
@@ -169,6 +166,37 @@
     #time-counter {
       font-size: 12px;
     }
+    #upgrades, #sidebar {
+      margin: 5px;
+      padding: 10px;
+    }
+    .upgrade-btn, .game-btn {
+      font-size: 14px;
+      padding: 12px;
+    }
+  }
+  .game-btn {
+    margin: 5px;
+    padding: 10px;
+    background-color: #4a4a8a;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s;
+    font-size: 14px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+  }
+  .game-btn:hover {
+    background-color: #5a5a9a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
   }
 </style>
 </head>
@@ -192,21 +220,35 @@
   </div>
   <div id="creativity-tab" class="tab-pane">
     <div id="upgrades">
-      <button class="upgrade-btn" id="planet-upgrade">Upgrade Planet (Cost: 10 Life)</button>
-      <button class="upgrade-btn" id="human-upgrade">Create Humans (Cost: 100 Life)</button>
-      <button class="upgrade-btn" id="animal-upgrade">Create Animals (Cost: 50 Life)</button>
-      <button class="upgrade-btn" id="click-upgrade">Upgrade Click (Cost: 50 Life)</button>
+      <h2>Upgrades</h2>
+      <div id="upgrade-grid">
+        <button class="upgrade-btn" id="planet-upgrade">Upgrade Planet (Cost: 10 Life)</button>
+        <button class="upgrade-btn" id="human-upgrade">Create Humans (Cost: 100 Life)</button>
+        <button class="upgrade-btn" id="animal-upgrade">Create Animals (Cost: 50 Life)</button>
+        <button class="upgrade-btn" id="click-upgrade">Upgrade Click (Cost: 50 Life)</button>
+        <button class="upgrade-btn" id="education-upgrade">Education System (Cost: 200 Life)</button>
+        <button class="upgrade-btn" id="technology-upgrade">Technological Advancement (Cost: 500 Life)</button>
+        <button class="upgrade-btn" id="ecosystem-upgrade">Enhance Ecosystem (Cost: 150 Life)</button>
+        <button class="upgrade-btn" id="biodiversity-upgrade">Increase Biodiversity (Cost: 300 Life)</button>
+        <button class="upgrade-btn" id="agriculture-upgrade">Develop Agriculture (Cost: 250 Life)</button>
+        <button class="upgrade-btn" id="conservation-upgrade">Wildlife Conservation (Cost: 350 Life)</button>
+      </div>
     </div>
   </div>
   <div id="options-tab" class="tab-pane">
     <div id="sidebar">
-      <div>
-        <div id="zoom-info">Zoom: Z (in) / O (out)</div>
-        <div id="human-activity">Human Activity: Idle</div>
-      </div>
+      <h2>Game Options</h2>
       <div id="game-controls">
         <button class="game-btn" id="save-game">Save Game</button>
         <button class="game-btn" id="reset-game">Reset Game</button>
+        <button class="game-btn" id="toggle-sound">Sound Effects: On</button>
+        <button class="game-btn" id="toggle-music">Music: On</button>
+        <button class="game-btn" id="toggle-short-notation">Short Numbers: On</button>
+        <button class="game-btn" id="toggle-sharpness">Galaxy Sharpness: Off</button>
+      </div>
+      <div id="game-info">
+        <p id="zoom-info">Zoom: Z (in) / O (out)</p>
+        <p id="human-activity">Human Activity: Idle</p>
       </div>
     </div>
   </div>
@@ -222,20 +264,163 @@ let planetUpgradeCost = 10;
 let humanUpgradeCost = 100;
 let animalUpgradeCost = 50;
 let clickUpgradeCost = 50;
+let educationLevel = 0;
+let technologyLevel = 0;
+let ecosystemLevel = 0;
+let biodiversityLevel = 0;
+let educationUpgradeCost = 200;
+let technologyUpgradeCost = 500;
+let ecosystemUpgradeCost = 150;
+let biodiversityUpgradeCost = 300;
+let rotationSpeed = 0.001;
 
-// Time variables
+let moon;
+let moonOrbit;
+const moonRotationSpeed = 0.001;
+const moonRevolutionSpeed = 0.001;
+const moonDistance = 2.5;
+
 let gameSeconds = 0;
 let gameDays = 0;
 let gameYears = 0;
 
-// Initialize Three.js scene
+let clickSound;
+let backgroundMusic;
+let isSoundEnabled = true;
+let isMusicEnabled = true;
+let isSharpnessEnabled = false;
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 5;
+
+function formatNumber(num) {
+  const shortNotation = document.getElementById('toggle-short-notation').textContent === 'Short Numbers: On';
+  if (!shortNotation || num < 1000) return num.toFixed(0);
+  const suffixes = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc', 'Ud', 'Dd', 'Td', 'Qad', 'Qid', 'Sxd', 'Spd', 'Ocd', 'Nod', 'Vg'];
+  const order = Math.floor(Math.log10(num) / 3);
+  return (num / Math.pow(10, order * 3)).toFixed(1) + suffixes[order];
+}
+
+function initializeAudio() {
+  clickSound = new Audio('https://example.com/click.mp3');
+  backgroundMusic = new Audio('https://example.com/ambient_space.mp3');
+  backgroundMusic.loop = true;
+}
+
+function playClickSound() {
+  if (isSoundEnabled && clickSound) {
+    clickSound.currentTime = 0;
+    clickSound.play().catch(e => console.log("Audio play failed:", e));
+  }
+}
+
+function toggleBackgroundMusic() {
+  if (isMusicEnabled && backgroundMusic) {
+    backgroundMusic.play().catch(e => console.log("Music play failed:", e));
+  } else if (backgroundMusic) {
+    backgroundMusic.pause();
+  }
+}
+
+function loadGame() {
+  const savedState = localStorage.getItem('planetIdleGame');
+  if (savedState) {
+    const gameState = JSON.parse(savedState);
+    life = gameState.life;
+    humans = gameState.humans;
+    animals = gameState.animals;
+    planetsProduced = gameState.planetsProduced;
+    lifePerSecond = gameState.lifePerSecond;
+    lifePerClick = gameState.lifePerClick;
+    planetUpgradeCost = gameState.planetUpgradeCost;
+    humanUpgradeCost = gameState.humanUpgradeCost;
+    animalUpgradeCost = gameState.animalUpgradeCost;
+    clickUpgradeCost = gameState.clickUpgradeCost || 50;
+    educationLevel = gameState.educationLevel || 0;
+    technologyLevel = gameState.technologyLevel || 0;
+    ecosystemLevel = gameState.ecosystemLevel || 0;
+    biodiversityLevel = gameState.biodiversityLevel || 0;
+    educationUpgradeCost = gameState.educationUpgradeCost || 200;
+    technologyUpgradeCost = gameState.technologyUpgradeCost || 500;
+    ecosystemUpgradeCost = gameState.ecosystemUpgradeCost || 150;
+    biodiversityUpgradeCost = gameState.biodiversityUpgradeCost || 300;
+    gameSeconds = gameState.gameSeconds || 0;
+    gameDays = gameState.gameDays || 0;
+    gameYears = gameState.gameYears || 0;
+    isSoundEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
+    isMusicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
+    isSharpnessEnabled = gameState.isSharpnessEnabled || false;
+
+    document.getElementById('toggle-sound').textContent = `Sound Effects: ${isSoundEnabled ? 'On' : 'Off'}`;
+    document.getElementById('toggle-music').textContent = `Music: ${isMusicEnabled ? 'On' : 'Off'}`;
+    document.getElementById('toggle-short-notation').textContent = `Short Numbers: ${gameState.isShortNotationOn !== undefined ? (gameState.isShortNotationOn ? 'On' : 'Off') : 'On'}`;
+    document.getElementById('toggle-sharpness').textContent = `Galaxy Sharpness: ${isSharpnessEnabled ? 'On' : 'Off'}`;
+    updateSharpness();
+    updateCounters();
+    updateTimeCounter();
+    updateAllUpgradeButtonTexts();
+  }
+}
+
+document.getElementById('toggle-sound').addEventListener('click', () => {
+  isSoundEnabled = !isSoundEnabled;
+  document.getElementById('toggle-sound').textContent = `Sound Effects: ${isSoundEnabled ? 'On' : 'Off'}`;
+});
+
+document.getElementById('toggle-music').addEventListener('click', () => {
+  isMusicEnabled = !isMusicEnabled;
+  document.getElementById('toggle-music').textContent = `Music: ${isMusicEnabled ? 'On' : 'Off'}`;
+  toggleBackgroundMusic();
+});
+
+document.getElementById('toggle-short-notation').addEventListener('click', () => {
+  const button = document.getElementById('toggle-short-notation');
+  const isShortNotationOn = button.textContent === 'Short Numbers: On';
+  button.textContent = isShortNotationOn ? 'Short Numbers: Off' : 'Short Numbers: On';
+  updateCounters();
+  updateAllUpgradeButtonTexts();
+});
+
+document.getElementById('toggle-sharpness').addEventListener('click', () => {
+  isSharpnessEnabled = !isSharpnessEnabled;
+  document.getElementById('toggle-sharpness').textContent = `Galaxy Sharpness: ${isSharpnessEnabled ? 'On' : 'Off'}`;
+  updateSharpness();
+});
+
+function updateSharpness() {
+  const pixelRatio = isSharpnessEnabled ? window.devicePixelRatio : 1;
+  renderer.setPixelRatio(pixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function updateAllUpgradeButtonTexts() {
+  updateUpgradeButtonText('planet-upgrade', 'Upgrade Planet', planetUpgradeCost);
+  updateUpgradeButtonText('human-upgrade', 'Create Humans', humanUpgradeCost);
+  updateUpgradeButtonText('animal-upgrade', 'Create Animals', animalUpgradeCost);
+  updateUpgradeButtonText('click-upgrade', 'Upgrade Click', clickUpgradeCost);
+  updateUpgradeButtonText('education-upgrade', 'Education System', educationUpgradeCost);
+  updateUpgradeButtonText('technology-upgrade', 'Technological Advancement', technologyUpgradeCost);
+  updateUpgradeButtonText('ecosystem-upgrade', 'Enhance Ecosystem', ecosystemUpgradeCost);
+  updateUpgradeButtonText('biodiversity-upgrade', 'Increase Biodiversity', biodiversityUpgradeCost);
+  updateUpgradeButtonText('agriculture-upgrade', 'Develop Agriculture', 250);
+  updateUpgradeButtonText('conservation-upgrade', 'Wildlife Conservation', 350);
+}
+
+function updateUpgradeButtonText(id, text, cost) {
+  document.getElementById(id).textContent = `${text} (Cost: ${formatNumber(cost)} Life)`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initializeAudio();
+  loadGame();
+});
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
 document.getElementById('game-container').appendChild(renderer.domElement);
 
-// Create a starfield background
 const starsGeometry = new THREE.BufferGeometry();
 const starsMaterial = new THREE.PointsMaterial({color: 0xFFFFFF, size: 0.1});
 
@@ -249,9 +434,10 @@ for (let i = 0; i < 10000; i++) {
 
 starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
 const starField = new THREE.Points(starsGeometry, starsMaterial);
-scene.add(starField);
+const starFieldGroup = new THREE.Group();
+starFieldGroup.add(starField);
+scene.add(starFieldGroup);
 
-// Create Earth
 const earthGeometry = new THREE.SphereGeometry(1, 64, 64);
 const earthMaterial = new THREE.MeshPhongMaterial({
   map: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'),
@@ -263,7 +449,6 @@ const earthMaterial = new THREE.MeshPhongMaterial({
 const earth = new THREE.Mesh(earthGeometry, earthMaterial);
 scene.add(earth);
 
-// Add clouds
 const cloudGeometry = new THREE.SphereGeometry(1.01, 64, 64);
 const cloudMaterial = new THREE.MeshPhongMaterial({
   map: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png'),
@@ -273,34 +458,31 @@ const cloudMaterial = new THREE.MeshPhongMaterial({
 const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
 earth.add(clouds);
 
-// Add ambient light
+function createMoon() {
+  const moonGeometry = new THREE.SphereGeometry(0.27, 32, 32);
+  const moonMaterial = new THREE.MeshPhongMaterial({
+    map: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/moon_1024.jpg'),
+    bumpMap: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/moon_bump.jpg'),
+    bumpScale: 0.002,
+  });
+  moon = new THREE.Mesh(moonGeometry, moonMaterial);
+  
+  moonOrbit = new THREE.Object3D();
+  moonOrbit.add(moon);
+  moon.position.x = moonDistance;
+  
+  scene.add(moonOrbit);
+}
+
+createMoon();
+
 const ambientLight = new THREE.AmbientLight(0x404040);
 scene.add(ambientLight);
 
-// Add directional light (sun)
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(5, 3, 5);
 scene.add(directionalLight);
 
-camera.position.z = 5;
-
-// Planet rotation
-const rotationSpeed = 0.001; // Earth's rotation speed
-
-// Mouse interaction variables
-let isDragging = false;
-let previousMousePosition = {
-    x: 0,
-    y: 0
-};
-
-// Zoom variables
-let targetZoom = 5;
-const zoomSpeed = 0.1;
-const minZoom = 2;
-const maxZoom = 10;
-
-// Update time counter
 function updateTimeCounter() {
   gameSeconds++;
   if (gameSeconds >= 86400) {
@@ -320,100 +502,41 @@ function updateTimeCounter() {
   document.getElementById('time-counter').textContent = timeString;
 }
 
-// Animation loop
 function animate() {
-    requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
 
-    // Rotate Earth on its axis
-    earth.rotation.y += rotationSpeed;
-    clouds.rotation.y += rotationSpeed * 1.1;
+  starFieldGroup.rotation.y += rotationSpeed;
 
-    // Smooth zoom
-    camera.position.z += (targetZoom - camera.position.z) * zoomSpeed;
+  earth.rotation.y += rotationSpeed;
+  clouds.rotation.y += rotationSpeed * 1.1;
 
-    // Update time counter
-    updateTimeCounter();
+  moon.rotation.y += moonRotationSpeed;
+  moonOrbit.rotation.y += moonRevolutionSpeed;
 
-    renderer.render(scene, camera);
+  const time = Date.now() * 0.0000;
+  camera.position.x = Math.cos(time) * 8;
+  camera.position.z = Math.sin(time) * 8;
+  camera.position.y = Math.sin(time * 0.5) * 2;
+
+  camera.lookAt(earth.position);
+
+  updateTimeCounter();
+
+  renderer.render(scene, camera);
+  
+  if (isSharpnessEnabled) {
+    renderer.setPixelRatio(window.devicePixelRatio);
+  } else {
+    renderer.setPixelRatio(1);
+  }
 }
 animate();
 
-// Mouse-based rotation
-renderer.domElement.addEventListener('mousedown', (e) => {
-    isDragging = true;
-});
-
-renderer.domElement.addEventListener('mousemove', (e) => {
-    if (isDragging) {
-        const deltaMove = {
-            x: e.offsetX - previousMousePosition.x,
-            y: e.offsetY - previousMousePosition.y
-        };
-
-        earth.rotation.y += deltaMove.x * 0.005;
-        earth.rotation.x += deltaMove.y * 0.005;
-    }
-
-    previousMousePosition = {
-        x: e.offsetX,
-        y: e.offsetY
-    };
-});
-
-renderer.domElement.addEventListener('mouseup', (e) => {
-    isDragging = false;
-});
-
-// Touch events
-function handleTouchStart(event) {
-  isDragging = true;
-  previousMousePosition = {
-    x: event.touches[0].clientX,
-    y: event.touches[0].clientY
-  };
-}
-
-function handleTouchMove(event) {
-  if (isDragging) {
-    const deltaMove = {
-      x: event.touches[0].clientX - previousMousePosition.x,
-      y: event.touches[0].clientY - previousMousePosition.y
-    };
-
-    earth.rotation.y += deltaMove.x * 0.005;
-    earth.rotation.x += deltaMove.y * 0.005;
-
-    previousMousePosition = {
-      x: event.touches[0].clientX,
-      y: event.touches[0].clientY
-    };
-  }
-}
-
-function handleTouchEnd() {
-  isDragging = false;
-}
-
-// Add touch event listeners
-renderer.domElement.addEventListener('touchstart', handleTouchStart, false);
-renderer.domElement.addEventListener('touchmove', handleTouchMove, false);
-renderer.domElement.addEventListener('touchend', handleTouchEnd, false);
-
-// Zoom controls
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'z') {
-        targetZoom = Math.max(targetZoom - 0.5, minZoom);
-    } else if (e.key === 'o') {
-        targetZoom = Math.min(targetZoom + 0.5, maxZoom);
-    }
-});
-
-// Game logic
 function updateCounters() {
-  document.getElementById('life-counter').textContent = `Life: ${Math.floor(life)}`;
-  document.getElementById('humans-counter').textContent = `Humans: ${humans}`;
-  document.getElementById('animals-counter').textContent = `Animals: ${animals}`;
-  document.getElementById('lps-counter').textContent = `Life per second: ${lifePerSecond.toFixed(1)}`;
+  document.getElementById('life-counter').textContent = `Life: ${formatNumber(life)}`;
+  document.getElementById('humans-counter').textContent = `Humans: ${formatNumber(humans)}`;
+  document.getElementById('animals-counter').textContent = `Animals: ${formatNumber(animals)}`;
+  document.getElementById('lps-counter').textContent = `Life per second: ${formatNumber(lifePerSecond)}`;
 }
 
 function upgradePlanet() {
@@ -422,7 +545,7 @@ function upgradePlanet() {
     planetsProduced++;
     lifePerSecond += 0.1;
     planetUpgradeCost = Math.floor(planetUpgradeCost * 1.5);
-    document.getElementById('planet-upgrade').textContent = `Upgrade Planet (Cost: ${planetUpgradeCost} Life)`;
+    updateUpgradeButtonText('planet-upgrade', 'Upgrade Planet', planetUpgradeCost);
     updateCounters();
   }
 }
@@ -433,7 +556,7 @@ function createHumans() {
     humans += 10;
     lifePerSecond += 1;
     humanUpgradeCost = Math.floor(humanUpgradeCost * 1.5);
-    document.getElementById('human-upgrade').textContent = `Create Humans (Cost: ${humanUpgradeCost} Life)`;
+    updateUpgradeButtonText('human-upgrade', 'Create Humans', humanUpgradeCost);
     updateCounters();
   }
 }
@@ -444,7 +567,7 @@ function createAnimals() {
     animals += 5;
     lifePerSecond += 0.5;
     animalUpgradeCost = Math.floor(animalUpgradeCost * 1.3);
-    document.getElementById('animal-upgrade').textContent = `Create Animals (Cost: ${animalUpgradeCost} Life)`;
+    updateUpgradeButtonText('animal-upgrade', 'Create Animals', animalUpgradeCost);
     updateCounters();
   }
 }
@@ -454,7 +577,69 @@ function upgradeClick() {
     life -= clickUpgradeCost;
     lifePerClick += 1;
     clickUpgradeCost = Math.floor(clickUpgradeCost * 1.5);
-    document.getElementById('click-upgrade').textContent = `Upgrade Click (Cost: ${clickUpgradeCost} Life)`;
+    updateUpgradeButtonText('click-upgrade', 'Upgrade Click', clickUpgradeCost);
+    updateCounters();
+  }
+}
+
+function upgradeEducation() {
+  if (life >= educationUpgradeCost) {
+    life -= educationUpgradeCost;
+    educationLevel++;
+    lifePerSecond += 2;
+    educationUpgradeCost = Math.floor(educationUpgradeCost * 1.5);
+    updateUpgradeButtonText('education-upgrade', 'Education System', educationUpgradeCost);
+    updateCounters();
+  }
+}
+
+function upgradeTechnology() {
+  if (life >= technologyUpgradeCost) {
+    life -= technologyUpgradeCost;
+    technologyLevel++;
+    lifePerSecond += 5;
+    technologyUpgradeCost = Math.floor(technologyUpgradeCost * 1.6);
+    updateUpgradeButtonText('technology-upgrade', 'Technological Advancement', technologyUpgradeCost);
+    updateCounters();
+  }
+}
+
+function upgradeEcosystem() {
+  if (life >= ecosystemUpgradeCost) {
+    life -= ecosystemUpgradeCost;
+    ecosystemLevel++;
+    lifePerSecond += 1.5;
+    ecosystemUpgradeCost = Math.floor(ecosystemUpgradeCost * 1.4);
+    updateUpgradeButtonText('ecosystem-upgrade', 'Enhance Ecosystem', ecosystemUpgradeCost);
+    updateCounters();
+  }
+}
+
+function upgradeBiodiversity() {
+  if (life >= biodiversityUpgradeCost) {
+    life -= biodiversityUpgradeCost;
+    biodiversityLevel++;
+    lifePerSecond += 3;
+    biodiversityUpgradeCost = Math.floor(biodiversityUpgradeCost * 1.5);
+    updateUpgradeButtonText('biodiversity-upgrade', 'Increase Biodiversity', biodiversityUpgradeCost);
+    updateCounters();
+  }
+}
+
+function upgradeAgriculture() {
+  if (life >= 250) {
+    life -= 250;
+    lifePerSecond += 2;
+    updateUpgradeButtonText('agriculture-upgrade', 'Develop Agriculture', 375);
+    updateCounters();
+  }
+}
+
+function upgradeConservation() {
+  if (life >= 350) {
+    life -= 350;
+    lifePerSecond += 3;
+    updateUpgradeButtonText('conservation-upgrade', 'Wildlife Conservation', 525);
     updateCounters();
   }
 }
@@ -463,13 +648,18 @@ document.getElementById('planet-upgrade').addEventListener('click', upgradePlane
 document.getElementById('human-upgrade').addEventListener('click', createHumans);
 document.getElementById('animal-upgrade').addEventListener('click', createAnimals);
 document.getElementById('click-upgrade').addEventListener('click', upgradeClick);
+document.getElementById('education-upgrade').addEventListener('click', upgradeEducation);
+document.getElementById('technology-upgrade').addEventListener('click', upgradeTechnology);
+document.getElementById('ecosystem-upgrade').addEventListener('click', upgradeEcosystem);
+document.getElementById('biodiversity-upgrade').addEventListener('click', upgradeBiodiversity);
+document.getElementById('agriculture-upgrade').addEventListener('click', upgradeAgriculture);
+document.getElementById('conservation-upgrade').addEventListener('click', upgradeConservation);
 
-// Click and Touch event for generating life
 document.getElementById('game-container').addEventListener('click', handleClick);
 document.getElementById('game-container').addEventListener('touchstart', handleClick);
 
 function handleClick(event) {
-  event.preventDefault(); // Prevent default touch behavior
+  event.preventDefault(); 
   const x = event.clientX || (event.touches && event.touches[0].clientX);
   const y = event.clientY || (event.touches && event.touches[0].clientY);
 
@@ -478,7 +668,8 @@ function handleClick(event) {
   life += lifePerClick;
   updateCounters();
   
-  // Create click text
+  playClickSound();
+  
   const clickText = document.createElement('div');
   clickText.textContent = `+${lifePerClick}`;
   clickText.classList.add('click-text');
@@ -486,7 +677,6 @@ function handleClick(event) {
   clickText.style.top = `${y}px`;
   document.body.appendChild(clickText);
 
-  // Animate click text
   gsap.to(clickText, {
     opacity: 0,
     y: -50,
@@ -494,41 +684,32 @@ function handleClick(event) {
     onComplete: () => clickText.remove()
   });
 
-  // Create life particle
   const particle = document.createElement('div');
   particle.classList.add('life-particle');
   particle.style.left = `${x}px`;
   particle.style.top = `${y}px`;
   document.body.appendChild(particle);
 
-  // Get the position of the life counter
   const lifeCounter = document.getElementById('life-counter');
   const lifeCounterRect = lifeCounter.getBoundingClientRect();
   const targetX = lifeCounterRect.left + lifeCounterRect.width / 2;
   const targetY = lifeCounterRect.top + lifeCounterRect.height / 2;
 
-  // Calculate the distance and duration based on the distance
-  const distance = Math.sqrt(Math.pow(targetX - x, 2) + Math.pow(targetY - y, 2));
-  const duration = Math.min(1, distance / 500);
-
-  // Animate life particle
   gsap.to(particle, {
     x: targetX - x,
     y: targetY - y,
     opacity: 0,
-    duration: duration,
+    duration: 1,
     ease: 'power1.in',
     onComplete: () => particle.remove()
   });
 }
 
-// Auto-generate life
 setInterval(() => {
   life += lifePerSecond;
   updateCounters();
 }, 1000);
 
-// Local Storage
 function saveGame() {
   const gameState = {
     life,
@@ -541,46 +722,27 @@ function saveGame() {
     humanUpgradeCost,
     animalUpgradeCost,
     clickUpgradeCost,
+    educationLevel,
+    technologyLevel,
+    ecosystemLevel,
+    biodiversityLevel,
+    educationUpgradeCost,
+    technologyUpgradeCost,
+    ecosystemUpgradeCost,
+    biodiversityUpgradeCost,
     gameSeconds,
     gameDays,
-    gameYears
+    gameYears,
+    isSoundEnabled,
+    isMusicEnabled,
+    isShortNotationOn: document.getElementById('toggle-short-notation').textContent === 'Short Numbers: On',
+    isSharpnessEnabled,
   };
   localStorage.setItem('planetIdleGame', JSON.stringify(gameState));
 }
 
-function loadGame() {
-  const savedState = localStorage.getItem('planetIdleGame');
-  if (savedState) {
-    const gameState = JSON.parse(savedState);
-    life = gameState.life;
-    humans = gameState.humans;
-    animals = gameState.animals;
-    planetsProduced = gameState.planetsProduced;
-    lifePerSecond = gameState.lifePerSecond;
-    lifePerClick = gameState.lifePerClick;
-    planetUpgradeCost = gameState.planetUpgradeCost;
-    humanUpgradeCost = gameState.humanUpgradeCost;
-    animalUpgradeCost = gameState.animalUpgradeCost;
-    clickUpgradeCost = gameState.clickUpgradeCost || 50;
-    gameSeconds = gameState.gameSeconds || 0;
-    gameDays = gameState.gameDays || 0;
-    gameYears = gameState.gameYears || 0;
-    updateCounters();
-    document.getElementById('planet-upgrade').textContent = `Upgrade Planet (Cost: ${planetUpgradeCost} Life)`;
-    document.getElementById('human-upgrade').textContent = `Create Humans (Cost: ${humanUpgradeCost} Life)`;
-    document.getElementById('animal-upgrade').textContent = `Create Animals (Cost: ${animalUpgradeCost} Life)`;
-    document.getElementById('click-upgrade').textContent = `Upgrade Click (Cost: ${clickUpgradeCost} Life)`;
-    updateTimeCounter();
-  }
-}
-
-// Auto-save every 30 seconds
 setInterval(saveGame, 30000);
 
-// Load game on start
-loadGame();
-
-// Reset game function
 document.getElementById('reset-game').addEventListener('click', resetGame);
 
 function resetGame() {
@@ -590,14 +752,12 @@ function resetGame() {
   }
 }
 
-// Resize handler
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  updateSharpness();
 });
 
-// Mobile Tabs Initialization
 function initMobileTabs() {
   const navButtons = document.querySelectorAll('.nav-btn');
   const tabPanes = document.querySelectorAll('.tab-pane');
@@ -605,7 +765,7 @@ function initMobileTabs() {
   navButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const tabName = btn.getAttribute('data-tab');
-      
+
       navButtons.forEach(b => b.classList.remove('active'));
       tabPanes.forEach(p => p.classList.remove('active'));
 
@@ -615,7 +775,6 @@ function initMobileTabs() {
   });
 }
 
-// Call this function after the DOM is loaded
 document.addEventListener('DOMContentLoaded', initMobileTabs);
 </script>
 </body>
