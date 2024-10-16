@@ -245,6 +245,7 @@
         <button class="game-btn" id="toggle-music">Music: On</button>
         <button class="game-btn" id="toggle-short-notation">Short Numbers: On</button>
         <button class="game-btn" id="toggle-sharpness">Galaxy Sharpness: Off</button>
+        <button class="game-btn" id="toggle-closeup">Planet Close-up: Off</button>
       </div>
       <div id="game-info">
         <p id="zoom-info">Zoom: Z (in) / O (out)</p>
@@ -273,6 +274,11 @@ let technologyUpgradeCost = 500;
 let ecosystemUpgradeCost = 150;
 let biodiversityUpgradeCost = 300;
 let rotationSpeed = 0.001;
+
+let agricultureUpgradeCost = 250;
+let conservationUpgradeCost = 350;
+
+let isCloseupEnabled = false;
 
 let moon;
 let moonOrbit;
@@ -345,16 +351,20 @@ function loadGame() {
     technologyUpgradeCost = gameState.technologyUpgradeCost || 500;
     ecosystemUpgradeCost = gameState.ecosystemUpgradeCost || 150;
     biodiversityUpgradeCost = gameState.biodiversityUpgradeCost || 300;
+    agricultureUpgradeCost = gameState.agricultureUpgradeCost || 250;
+    conservationUpgradeCost = gameState.conservationUpgradeCost || 350;
     gameSeconds = gameState.gameSeconds || 0;
     gameDays = gameState.gameDays || 0;
     gameYears = gameState.gameYears || 0;
     isSoundEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
     isMusicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
     isSharpnessEnabled = gameState.isSharpnessEnabled || false;
+    isCloseupEnabled = gameState.isCloseupEnabled || false;
 
     document.getElementById('toggle-sound').textContent = `Sound Effects: ${isSoundEnabled ? 'On' : 'Off'}`;
     document.getElementById('toggle-music').textContent = `Music: ${isMusicEnabled ? 'On' : 'Off'}`;
     document.getElementById('toggle-short-notation').textContent = `Short Numbers: ${gameState.isShortNotationOn !== undefined ? (gameState.isShortNotationOn ? 'On' : 'Off') : 'On'}`;
+    document.getElementById('toggle-closeup').textContent = `Planet Close-up: ${isCloseupEnabled ? 'On' : 'Off'}`;
     document.getElementById('toggle-sharpness').textContent = `Galaxy Sharpness: ${isSharpnessEnabled ? 'On' : 'Off'}`;
     updateSharpness();
     updateCounters();
@@ -382,11 +392,32 @@ document.getElementById('toggle-short-notation').addEventListener('click', () =>
   updateAllUpgradeButtonTexts();
 });
 
+document.getElementById('toggle-closeup').addEventListener('click', toggleCloseup);
+
+function toggleCloseup() {
+  isCloseupEnabled = !isCloseupEnabled;
+  document.getElementById('toggle-closeup').textContent = `Planet Close-up: ${isCloseupEnabled ? 'On' : 'Off'}`;
+  updateCameraPosition();
+}
+
+// Add this code near the other event listeners for toggle buttons
 document.getElementById('toggle-sharpness').addEventListener('click', () => {
   isSharpnessEnabled = !isSharpnessEnabled;
   document.getElementById('toggle-sharpness').textContent = `Galaxy Sharpness: ${isSharpnessEnabled ? 'On' : 'Off'}`;
   updateSharpness();
 });
+
+function updateCameraPosition() {
+  const time = Date.now() * 0.0005;
+  if (isCloseupEnabled) {
+    camera.position.set(0, 0, 3);
+  } else {
+    camera.position.x = Math.cos(time) * 8;
+    camera.position.z = Math.sin(time) * 8;
+    camera.position.y = Math.sin(time * 0.5) * 2;
+  }
+  camera.lookAt(earth.position);
+}
 
 function updateSharpness() {
   const pixelRatio = isSharpnessEnabled ? window.devicePixelRatio : 1;
@@ -403,8 +434,8 @@ function updateAllUpgradeButtonTexts() {
   updateUpgradeButtonText('technology-upgrade', 'Technological Advancement', technologyUpgradeCost);
   updateUpgradeButtonText('ecosystem-upgrade', 'Enhance Ecosystem', ecosystemUpgradeCost);
   updateUpgradeButtonText('biodiversity-upgrade', 'Increase Biodiversity', biodiversityUpgradeCost);
-  updateUpgradeButtonText('agriculture-upgrade', 'Develop Agriculture', 250);
-  updateUpgradeButtonText('conservation-upgrade', 'Wildlife Conservation', 350);
+  updateUpgradeButtonText('agriculture-upgrade', 'Develop Agriculture', agricultureUpgradeCost);
+  updateUpgradeButtonText('conservation-upgrade', 'Wildlife Conservation', conservationUpgradeCost);
 }
 
 function updateUpgradeButtonText(id, text, cost) {
@@ -513,23 +544,11 @@ function animate() {
   moon.rotation.y += moonRotationSpeed;
   moonOrbit.rotation.y += moonRevolutionSpeed;
 
-  const time = Date.now() * 0.0000;
-  camera.position.x = Math.cos(time) * 8;
-  camera.position.z = Math.sin(time) * 8;
-  camera.position.y = Math.sin(time * 0.5) * 2;
-
-  camera.lookAt(earth.position);
-
-  updateTimeCounter();
+  updateCameraPosition();
 
   renderer.render(scene, camera);
-  
-  if (isSharpnessEnabled) {
-    renderer.setPixelRatio(window.devicePixelRatio);
-  } else {
-    renderer.setPixelRatio(1);
-  }
 }
+
 animate();
 
 function updateCounters() {
@@ -627,19 +646,21 @@ function upgradeBiodiversity() {
 }
 
 function upgradeAgriculture() {
-  if (life >= 250) {
-    life -= 250;
+  if (life >= agricultureUpgradeCost) {
+    life -= agricultureUpgradeCost;
     lifePerSecond += 2;
-    updateUpgradeButtonText('agriculture-upgrade', 'Develop Agriculture', 375);
+    agricultureUpgradeCost = Math.floor(agricultureUpgradeCost * 1.5);
+    updateUpgradeButtonText('agriculture-upgrade', 'Develop Agriculture', agricultureUpgradeCost);
     updateCounters();
   }
 }
 
 function upgradeConservation() {
-  if (life >= 350) {
-    life -= 350;
+  if (life >= conservationUpgradeCost) {
+    life -= conservationUpgradeCost;
     lifePerSecond += 3;
-    updateUpgradeButtonText('conservation-upgrade', 'Wildlife Conservation', 525);
+    conservationUpgradeCost = Math.floor(conservationUpgradeCost * 1.5);
+    updateUpgradeButtonText('conservation-upgrade', 'Wildlife Conservation', conservationUpgradeCost);
     updateCounters();
   }
 }
@@ -730,6 +751,8 @@ function saveGame() {
     technologyUpgradeCost,
     ecosystemUpgradeCost,
     biodiversityUpgradeCost,
+    agricultureUpgradeCost,
+    conservationUpgradeCost,
     gameSeconds,
     gameDays,
     gameYears,
@@ -737,6 +760,7 @@ function saveGame() {
     isMusicEnabled,
     isShortNotationOn: document.getElementById('toggle-short-notation').textContent === 'Short Numbers: On',
     isSharpnessEnabled,
+    isCloseupEnabled,
   };
   localStorage.setItem('planetIdleGame', JSON.stringify(gameState));
 }
