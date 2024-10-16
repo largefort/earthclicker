@@ -142,12 +142,13 @@
   }
   .life-particle {
     position: absolute;
-    width: 10px;
-    height: 10px;
+    width: 20px;
+    height: 20px;
     background-color: #00ff00;
     border-radius: 50%;
     pointer-events: none;
     z-index: 1000;
+    box-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
   }
   @media (max-width: 768px) {
     #game-container {
@@ -539,6 +540,7 @@ function animate() {
   moonOrbit.rotation.y += moonRevolutionSpeed;
 
   updateCameraPosition();
+  updateTimeCounter();
 
   renderer.render(scene, camera);
 }
@@ -714,9 +716,23 @@ function handleClick(event) {
     x: targetX - x,
     y: targetY - y,
     opacity: 0,
-    duration: 1,
-    ease: 'power1.in',
+    duration: 1.5,
+    ease: 'power2.in',
     onComplete: () => particle.remove()
+  });
+
+  gsap.to(particle, {
+    scale: 1.5,
+    duration: 0.5,
+    repeat: 1,
+    yoyo: true,
+    ease: 'power1.inOut'
+  });
+
+  gsap.to(particle, {
+    rotation: 360,
+    duration: 1.5,
+    ease: 'none'
   });
 }
 
