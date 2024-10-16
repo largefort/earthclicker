@@ -273,28 +273,23 @@ let educationUpgradeCost = 200;
 let technologyUpgradeCost = 500;
 let ecosystemUpgradeCost = 150;
 let biodiversityUpgradeCost = 300;
-let rotationSpeed = 0.001;
-
 let agricultureUpgradeCost = 250;
 let conservationUpgradeCost = 350;
-
 let isCloseupEnabled = false;
-
 let moon;
 let moonOrbit;
 const moonRotationSpeed = 0.001;
 const moonRevolutionSpeed = 0.001;
 const moonDistance = 2.5;
-
 let gameSeconds = 0;
 let gameDays = 0;
 let gameYears = 0;
-
 let clickSound;
 let backgroundMusic;
 let isSoundEnabled = true;
 let isMusicEnabled = true;
 let isSharpnessEnabled = false;
+let rotationSpeed = 0.001;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -400,7 +395,6 @@ function toggleCloseup() {
   updateCameraPosition();
 }
 
-// Add this code near the other event listeners for toggle buttons
 document.getElementById('toggle-sharpness').addEventListener('click', () => {
   isSharpnessEnabled = !isSharpnessEnabled;
   document.getElementById('toggle-sharpness').textContent = `Galaxy Sharpness: ${isSharpnessEnabled ? 'On' : 'Off'}`;
