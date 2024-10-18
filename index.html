@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Advanced Three.js Planet Idle Game with Zoom and Animals</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4695170235902689" crossorigin="anonymous"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4695170235902689" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
 <style>
@@ -151,6 +151,22 @@
     z-index: 1000;
     box-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
   }
+  #offline-progress-notification {
+    position: fixed;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(74, 74, 138, 0.9);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    z-index: 1001;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+  }
+  #offline-progress-notification p {
+    margin: 5px 0;
+  }
   @media (max-width: 768px) {
     #game-container {
       height: calc(100% - 60px);
@@ -230,6 +246,7 @@
       </div>
     </div>
     <div id="ad-container">
+      <!-- ad -->
       <ins class="adsbygoogle"
            style="display:block"
            data-ad-client="ca-pub-4695170235902689"
@@ -313,6 +330,8 @@ let isSoundEnabled = true;
 let isMusicEnabled = true;
 let isSharpnessEnabled = false;
 let rotationSpeed = 0.001;
+let lastActiveTime = Date.now();
+let offlineProgressNotification = null;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -326,25 +345,18 @@ function formatNumber(num) {
   return (num / Math.pow(10, order * 3)).toFixed(1) + suffixes[order];
 }
 
-function initializeAudio() {
-  clickSound = new Audio('https://example.com/click.mp3');
-  backgroundMusic = new Audio('https://example.com/ambient_space.mp3');
-  backgroundMusic.loop = true;
-}
+function calculateOfflineProgress() {
+  const currentTime = Date.now();
+  const lastActive = parseInt(localStorage.getItem('lastActiveTime')) || currentTime;
+  const timeDiff = (currentTime - lastActive) / 1000;
 
-function playClickSound() {
-  if (isSoundEnabled && clickSound) {
-    clickSound.currentTime = 0;
-    clickSound.play().catch(e => console.log("Audio play failed:", e));
+  if (timeDiff > 60) {
+    const offlineLife = lifePerSecond * timeDiff;
+    life += offlineLife;
+    return { lifeGained: offlineLife, timePassed: timeDiff };
   }
-}
 
-function toggleBackgroundMusic() {
-  if (isMusicEnabled && backgroundMusic) {
-    backgroundMusic.play().catch(e => console.log("Music play failed:", e));
-  } else if (backgroundMusic) {
-    backgroundMusic.pause();
-  }
+  return null;
 }
 
 function loadGame() {
@@ -371,13 +383,15 @@ function loadGame() {
     biodiversityUpgradeCost = gameState.biodiversityUpgradeCost || 300;
     agricultureUpgradeCost = gameState.agricultureUpgradeCost || 250;
     conservationUpgradeCost = gameState.conservationUpgradeCost || 350;
-    gameSeconds = gameState.gameSeconds || 0;
-    gameDays = gameState.gameDays || 0;
-    gameYears = gameState.gameYears || 0;
     isSoundEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
     isMusicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
     isSharpnessEnabled = gameState.isSharpnessEnabled || false;
     isCloseupEnabled = gameState.isCloseupEnabled || false;
+
+    const offlineProgress = calculateOfflineProgress();
+    if (offlineProgress) {
+      showOfflineProgressNotification(offlineProgress.lifeGained, offlineProgress.timePassed);
+    }
 
     document.getElementById('toggle-sound').textContent = `Sound Effects: ${isSoundEnabled ? 'On' : 'Off'}`;
     document.getElementById('toggle-music').textContent = `Music: ${isMusicEnabled ? 'On' : 'Off'}`;
@@ -388,6 +402,54 @@ function loadGame() {
     updateCounters();
     updateTimeCounter();
     updateAllUpgradeButtonTexts();
+  }
+}
+
+function showOfflineProgressNotification(lifeGained, timePassed) {
+  const hours = Math.floor(timePassed / 3600);
+  const minutes = Math.floor((timePassed % 3600) / 60);
+  const timeAway = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+  offlineProgressNotification = document.createElement('div');
+  offlineProgressNotification.id = 'offline-progress-notification';
+  offlineProgressNotification.innerHTML = `
+    <p>Welcome back!</p>
+    <p>You were away for ${timeAway}</p>
+    <p>You gained ${formatNumber(lifeGained)} life while offline</p>
+  `;
+  document.body.appendChild(offlineProgressNotification);
+
+  gsap.fromTo(offlineProgressNotification, 
+    { y: 100, opacity: 0 },
+    { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out' }
+  );
+
+  setTimeout(() => {
+    gsap.to(offlineProgressNotification, {
+      y: 100, opacity: 0, duration: 0.5, ease: 'power2.in',
+      onComplete: () => offlineProgressNotification.remove()
+    });
+  }, 5000);
+}
+
+function initializeAudio() {
+  clickSound = new Audio('https://example.com/click.mp3');
+  backgroundMusic = new Audio('https://example.com/ambient_space.mp3');
+  backgroundMusic.loop = true;
+}
+
+function playClickSound() {
+  if (isSoundEnabled && clickSound) {
+    clickSound.currentTime = 0;
+    clickSound.play().catch(e => console.log("Audio play failed:", e));
+  }
+}
+
+function toggleBackgroundMusic() {
+  if (isMusicEnabled && backgroundMusic) {
+    backgroundMusic.play().catch(e => console.log("Music play failed:", e));
+  } else if (backgroundMusic) {
+    backgroundMusic.pause();
   }
 }
 
@@ -795,6 +857,7 @@ function saveGame() {
     isCloseupEnabled,
   };
   localStorage.setItem('planetIdleGame', JSON.stringify(gameState));
+  localStorage.setItem('lastActiveTime', Date.now());
 }
 
 setInterval(saveGame, 30000);
