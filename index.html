@@ -2,10 +2,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Advanced Three.js Planet Idle Game with Zoom and Animals</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4695170235902689" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
 <style>
   body, html {
     margin: 0;
@@ -218,7 +218,6 @@
     transform: translateY(-2px);
     box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
   }
-  /* Add these styles for the ad container */
   #ad-container {
     width: 100%;
     max-width: 728px;
@@ -297,9 +296,40 @@
   </div>
 </div>
 <script>
-let clickSound;
-let backgroundMusic;
-let audioInitialized = false;
+let audioContext;
+let clickBuffer;
+
+function initializeAudio() {
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  fetch('https://assets.mixkit.co/sfx/preview/mixkit-soft-pop-click-2581.mp3')
+    .then(response => response.arrayBuffer())
+    .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+    .then(audioBuffer => {
+      clickBuffer = audioBuffer;
+    })
+    .catch(error => console.error('Error loading audio:', error));
+}
+
+function playClickSound() {
+  if (audioContext && clickBuffer && isSoundEnabled) {
+    const source = audioContext.createBufferSource();
+    source.buffer = clickBuffer;
+    source.connect(audioContext.destination);
+    source.start();
+  }
+}
+
+function isLocalStorageAvailable() {
+  try {
+    const test = '__storage_test__';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
 let life = 0;
 let humans = 0;
 let animals = 0;
@@ -349,10 +379,9 @@ function formatNumber(num) {
   return (num / Math.pow(10, order * 3)).toFixed(1) + suffixes[order];
 }
 
-function calculateOfflineProgress() {
+function calculateOfflineProgress(lastActiveTime) {
   const currentTime = Date.now();
-  const lastActive = parseInt(localStorage.getItem('lastActiveTime')) || currentTime;
-  const timeDiff = (currentTime - lastActive) / 1000;
+  const timeDiff = (currentTime - lastActiveTime) / 1000;
 
   if (timeDiff > 60) {
     const offlineLife = lifePerSecond * timeDiff;
@@ -363,156 +392,167 @@ function calculateOfflineProgress() {
   return null;
 }
 
-function loadGame() {
-  const savedState = localStorage.getItem('planetIdleGame');
-  if (savedState) {
-    const gameState = JSON.parse(savedState);
-    life = gameState.life;
-    humans = gameState.humans;
-    animals = gameState.animals;
-    planetsProduced = gameState.planetsProduced;
-    lifePerSecond = gameState.lifePerSecond;
-    lifePerClick = gameState.lifePerClick;
-    planetUpgradeCost = gameState.planetUpgradeCost;
-    humanUpgradeCost = gameState.humanUpgradeCost;
-    animalUpgradeCost = gameState.animalUpgradeCost;
-    clickUpgradeCost = gameState.clickUpgradeCost || 50;
-    educationLevel = gameState.educationLevel || 0;
-    technologyLevel = gameState.technologyLevel || 0;
-    ecosystemLevel = gameState.ecosystemLevel || 0;
-    biodiversityLevel = gameState.biodiversityLevel || 0;
-    educationUpgradeCost = gameState.educationUpgradeCost || 200;
-    technologyUpgradeCost = gameState.technologyUpgradeCost || 500;
-    ecosystemUpgradeCost = gameState.ecosystemUpgradeCost || 150;
-    biodiversityUpgradeCost = gameState.biodiversityUpgradeCost || 300;
-    agricultureUpgradeCost = gameState.agricultureUpgradeCost || 250;
-    conservationUpgradeCost = gameState.conservationUpgradeCost || 350;
-    isSoundEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
-    isMusicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
-    isSharpnessEnabled = gameState.isSharpnessEnabled || false;
-    isFastNotesEnabled = gameState.isFastNotesEnabled !== undefined ? gameState.isFastNotesEnabled : true;
-    isCloseupEnabled = gameState.isCloseupEnabled || false;
-
-    const offlineProgress = calculateOfflineProgress();
-    if (offlineProgress) {
-      showOfflineProgressNotification(offlineProgress.lifeGained, offlineProgress.timePassed);
-    }
-
-    document.getElementById('toggle-sound').textContent = `Sound Effects: ${isSoundEnabled ? 'On' : 'Off'}`;
-    document.getElementById('toggle-music').textContent = `Music: ${isMusicEnabled ? 'On' : 'Off'}`;
-    document.getElementById('toggle-short-notation').textContent = `Short Numbers: ${gameState.isShortNotationOn !== undefined ? (gameState.isShortNotationOn ? 'On' : 'Off') : 'On'}`;
-    document.getElementById('toggle-closeup').textContent = `Planet Close-up: ${isCloseupEnabled ? 'On' : 'Off'}`;
-    document.getElementById('toggle-sharpness').textContent = `Galaxy Sharpness: ${isSharpnessEnabled ? 'On' : 'Off'}`;
-    document.getElementById('toggle-fast-notes').textContent = `Fast Notes: ${isFastNotesEnabled ? 'On' : 'Off'}`;
-    updateSharpness();
-    updateCounters();
-    updateTimeCounter();
-    updateAllUpgradeButtonTexts();
-  }
-}
-
 function showOfflineProgressNotification(lifeGained, timePassed) {
-  const hours = Math.floor(timePassed / 3600);
-  const minutes = Math.floor((timePassed % 3600) / 60);
-  const timeAway = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-
-  offlineProgressNotification = document.createElement('div');
-  offlineProgressNotification.id = 'offline-progress-notification';
-  offlineProgressNotification.innerHTML = `
+  const notification = document.createElement('div');
+  notification.id = 'offline-progress-notification';
+  notification.innerHTML = `
     <p>Welcome back!</p>
-    <p>You were away for ${timeAway}</p>
+    <p>You were away for ${formatTime(timePassed)}</p>
     <p>You gained ${formatNumber(lifeGained)} life while offline</p>
   `;
-  document.body.appendChild(offlineProgressNotification);
-
-  gsap.fromTo(offlineProgressNotification, 
-    { y: 100, opacity: 0 },
-    { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out' }
-  );
-
-  const notificationDuration = isFastNotesEnabled ? 2000 : 4000;
+  document.body.appendChild(notification);
 
   setTimeout(() => {
-    gsap.to(offlineProgressNotification, {
-      y: 100, opacity: 0, duration: 0.5, ease: 'power2.in',
-      onComplete: () => offlineProgressNotification.remove()
-    });
-  }, notificationDuration);
+    notification.style.opacity = '0';
+    setTimeout(() => {
+      notification.remove();
+    }, 1000);
+  }, isFastNotesEnabled ? 2000 : 4000);
 }
 
-function initializeAudio() {
-  clickSound = new Audio();
-  clickSound.src = 'https://example.com/click.mp3';
-  backgroundMusic = new Audio();
-  backgroundMusic.src = 'https://example.com/background.mp3';
-  backgroundMusic.loop = true;
-}
-
-function playClickSound() {
-  if (isSoundEnabled && clickSound && audioInitialized) {
-    clickSound.currentTime = 0;
-    clickSound.play().catch(error => {
-      console.warn("Audio playback failed:", error);
-    });
+function formatTime(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) {
+    return `${hours} hours and ${minutes} minutes`;
+  } else if (minutes > 0) {
+    return `${minutes} minutes`;
+  } else {
+    return `${Math.floor(seconds)} seconds`;
   }
 }
 
-function toggleBackgroundMusic() {
-  if (isMusicEnabled && backgroundMusic && audioInitialized) {
-    backgroundMusic.play().catch(error => {
-      console.warn("Background music playback failed:", error);
-    });
-  } else if (backgroundMusic) {
-    backgroundMusic.pause();
+function loadGame() {
+  if (!isLocalStorageAvailable()) {
+    console.warn("localStorage is not available. Unable to load saved game.");
+    return;
   }
-}
 
-function toggleFastNotes() {
-  isFastNotesEnabled = !isFastNotesEnabled;
-  document.getElementById('toggle-fast-notes').textContent = `Fast Notes: ${isFastNotesEnabled ? 'On' : 'Off'}`;
-  saveGame();
+  try {
+    const savedState = localStorage.getItem('planetIdleGame');
+    if (savedState) {
+      const gameState = JSON.parse(savedState);
+      life = gameState.life;
+      humans = gameState.humans;
+      animals = gameState.animals;
+      planetsProduced = gameState.planetsProduced;
+      lifePerSecond = gameState.lifePerSecond;
+      lifePerClick = gameState.lifePerClick;
+      planetUpgradeCost = gameState.planetUpgradeCost;
+      humanUpgradeCost = gameState.humanUpgradeCost;
+      animalUpgradeCost = gameState.animalUpgradeCost;
+      clickUpgradeCost = gameState.clickUpgradeCost || 50;
+      educationLevel = gameState.educationLevel || 0;
+      technologyLevel = gameState.technologyLevel || 0;
+      ecosystemLevel = gameState.ecosystemLevel || 0;
+      biodiversityLevel = gameState.biodiversityLevel || 0;
+      educationUpgradeCost = gameState.educationUpgradeCost || 200;
+      technologyUpgradeCost = gameState.technologyUpgradeCost || 500;
+      ecosystemUpgradeCost = gameState.ecosystemUpgradeCost || 150;
+      biodiversityUpgradeCost = gameState.biodiversityUpgradeCost || 300;
+      agricultureUpgradeCost = gameState.agricultureUpgradeCost || 250;
+      conservationUpgradeCost = gameState.conservationUpgradeCost || 350;
+      gameSeconds = gameState.gameSeconds || 0;
+      gameDays = gameState.gameDays || 0;
+      gameYears = gameState.gameYears || 0;
+      isSoundEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
+      isMusicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
+      isSharpnessEnabled = gameState.isSharpnessEnabled || false;
+      isFastNotesEnabled = gameState.isFastNotesEnabled !== undefined ? gameState.isFastNotesEnabled : true;
+      isCloseupEnabled = gameState.isCloseupEnabled || false;
+
+      const lastActiveTime = parseInt(localStorage.getItem('lastActiveTime') || Date.now().toString(), 10);
+      const offlineProgress = calculateOfflineProgress(lastActiveTime);
+      if (offlineProgress) {
+        showOfflineProgressNotification(offlineProgress.lifeGained, offlineProgress.timePassed);
+      }
+
+      document.getElementById('toggle-sound').textContent = `Sound Effects: ${isSoundEnabled ? 'On' : 'Off'}`;
+      document.getElementById('toggle-music').textContent = `Music: ${isMusicEnabled ? 'On' : 'Off'}`;
+      document.getElementById('toggle-short-notation').textContent = `Short Numbers: ${gameState.isShortNotationOn !== undefined ? (gameState.isShortNotationOn ? 'On' : 'Off') : 'On'}`;
+      document.getElementById('toggle-closeup').textContent = `Planet Close-up: ${isCloseupEnabled ? 'On' : 'Off'}`;
+      document.getElementById('toggle-sharpness').textContent = `Galaxy Sharpness: ${isSharpnessEnabled ? 'On' : 'Off'}`;
+      document.getElementById('toggle-fast-notes').textContent = `Fast Notes: ${isFastNotesEnabled ? 'On' : 'Off'}`;
+      updateSharpness();
+      updateCounters();
+      updateTimeCounter();
+      updateAllUpgradeButtonTexts();
+    } else {
+      console.log("No saved game found. Starting a new game.");
+    }
+  } catch (error) {
+    console.error("Failed to load game state:", error);
+  }
 }
 
 function saveGame() {
-  const gameState = {
-    life,
-    humans,
-    animals,
-    planetsProduced,
-    lifePerSecond,
-    lifePerClick,
-    planetUpgradeCost,
-    humanUpgradeCost,
-    animalUpgradeCost,
-    clickUpgradeCost,
-    educationLevel,
-    technologyLevel,
-    ecosystemLevel,
-    biodiversityLevel,
-    educationUpgradeCost,
-    technologyUpgradeCost,
-    ecosystemUpgradeCost,
-    biodiversityUpgradeCost,
-    agricultureUpgradeCost,
-    conservationUpgradeCost,
-    gameSeconds,
-    gameDays,
-    gameYears,
-    isSoundEnabled,
-    isMusicEnabled,
-    isShortNotationOn: document.getElementById('toggle-short-notation').textContent === 'Short Numbers: On',
-    isSharpnessEnabled,
-    isCloseupEnabled,
-    isFastNotesEnabled,
-  };
-  localStorage.setItem('planetIdleGame', JSON.stringify(gameState));
-  localStorage.setItem('lastActiveTime', Date.now());
+  if (!isLocalStorageAvailable()) {
+    console.warn("localStorage is not available. Game progress will not be saved.");
+    return;
+  }
+
+  try {
+    const gameState = {
+      life,
+      humans,
+      animals,
+      planetsProduced,
+      lifePerSecond,
+      lifePerClick,
+      planetUpgradeCost,
+      humanUpgradeCost,
+      animalUpgradeCost,
+      clickUpgradeCost,
+      educationLevel,
+      technologyLevel,
+      ecosystemLevel,
+      biodiversityLevel,
+      educationUpgradeCost,
+      technologyUpgradeCost,
+      ecosystemUpgradeCost,
+      biodiversityUpgradeCost,
+      agricultureUpgradeCost,
+      conservationUpgradeCost,
+      gameSeconds,
+      gameDays,
+      gameYears,
+      isSoundEnabled,
+      isMusicEnabled,
+      isShortNotationOn: document.getElementById('toggle-short-notation').textContent === 'Short Numbers: On',
+      isSharpnessEnabled,
+      isCloseupEnabled,
+      isFastNotesEnabled,
+    };
+    localStorage.setItem('planetIdleGame', JSON.stringify(gameState));
+    localStorage.setItem('lastActiveTime', Date.now().toString());
+  } catch (error) {
+    console.error("Failed to save game state:", error);
+  }
+}
+
+function autosave() {
+  saveGame();
+  console.log('Game autosaved');
+}
+
+function autoload() {
+  loadGame();
+  console.log('Game autoloaded');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   loadGame();
   initMobileTabs();
+  initializeAudio();
+
+  autosave();
+  autoload();
 });
+
+setInterval(() => {
+  autosave();
+  autoload();
+}, 30000);
 
 document.getElementById('toggle-music').addEventListener('click', () => {
   isMusicEnabled = !isMusicEnabled;
@@ -546,6 +586,12 @@ document.getElementById('toggle-sharpness').addEventListener('click', () => {
   document.getElementById('toggle-sharpness').textContent = `Galaxy Sharpness: ${isSharpnessEnabled ? 'On' : 'Off'}`;
   updateSharpness();
 });
+
+function toggleFastNotes() {
+  isFastNotesEnabled = !isFastNotesEnabled;
+  document.getElementById('toggle-fast-notes').textContent = `Fast Notes: ${isFastNotesEnabled ? 'On' : 'Off'}`;
+  saveGame();
+}
 
 document.getElementById('toggle-fast-notes').addEventListener('click', toggleFastNotes);
 
@@ -827,9 +873,8 @@ function handleClick(event) {
   life += lifePerClick;
   updateCounters();
   
-  if (!audioInitialized) {
+  if (!audioContext) {
     initializeAudio();
-    audioInitialized = true;
   }
   
   playClickSound();
