@@ -6,7 +6,6 @@
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4695170235902689" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <style>
   body, html {
     margin: 0;
@@ -21,35 +20,43 @@
   #game-container {
     position: relative;
     width: 100%;
-    height: calc(100% - 60px);
+    height: calc(100% - 70px);
   }
   #mobile-nav {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 60px;
-    background-color: rgba(20, 20, 40, 0.9);
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    height: 70px;
+    background: linear-gradient(to top, rgba(20, 20, 40, 0.95), rgba(30, 30, 60, 0.95));
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: space-around;
     align-items: center;
     z-index: 1000;
+    padding: 0 10px;
   }
   .nav-btn {
     background: none;
     border: none;
-    color: #e0e0e0;
+    color: #a0a0b0;
     font-size: 14px;
     font-weight: bold;
     text-transform: uppercase;
-    padding: 10px;
+    padding: 10px 15px;
     cursor: pointer;
     transition: all 0.3s ease;
+    border-radius: 20px;
+    outline: none;
+  }
+  .nav-btn:hover {
+    color: #e0e0e0;
+    background-color: rgba(255, 255, 255, 0.1);
   }
   .nav-btn.active {
     color: #00ccff;
-    border-bottom: 3px solid #00ccff;
+    background-color: rgba(0, 204, 255, 0.2);
+    box-shadow: 0 0 10px rgba(0, 204, 255, 0.3);
   }
   #tab-content {
     height: 100%;
@@ -313,10 +320,7 @@
         <button class="game-btn" id="toggle-sharpness">Galaxy Sharpness: Off</button>
         <button class="game-btn" id="toggle-closeup">Planet Close-up: Off</button>
         <button class="game-btn" id="toggle-fast-notes">Fast Notes: On</button>
-        <button class="game-btn" id="export-game">Export to File</button>
-        <button class="game-btn" id="import-game">Import from File</button>
       </div>
-      <input type="file" id="import-file" style="display: none;">
       <div id="game-info">
         <p id="zoom-info">Zoom: Z (in) / O (out)</p>
         <p id="human-activity">Human Activity: Idle</p>
@@ -1035,124 +1039,6 @@ function initMobileTabs() {
     });
   });
 }
-
-function exportToFile() {
-  const gameState = {
-    life,
-    humans,
-    animals,
-    planetsProduced,
-    lifePerSecond,
-    lifePerClick,
-    planetUpgradeCost,
-    humanUpgradeCost,
-    animalUpgradeCost,
-    clickUpgradeCost,
-    educationLevel,
-    technologyLevel,
-    ecosystemLevel,
-    biodiversityLevel,
-    educationUpgradeCost,
-    technologyUpgradeCost,
-    ecosystemUpgradeCost,
-    biodiversityUpgradeCost,
-    agricultureUpgradeCost,
-    conservationUpgradeCost,
-    totalLifeProduced,
-    totalClicks,
-    humansCreated,
-    animalsCreated,
-    gameSeconds,
-    gameDays,
-    gameYears,
-    isSoundEnabled,
-    isMusicEnabled,
-    isShortNotationOn: document.getElementById('toggle-short-notation').textContent === 'Short Numbers: On',
-    isSharpnessEnabled,
-    isCloseupEnabled,
-    isFastNotesEnabled,
-  };
-
-  const gameStateString = JSON.stringify(gameState);
-  const gameStateBase64 = btoa(gameStateString);
-  const blob = new Blob([gameStateBase64], {type: "text/plain;charset=utf-8"});
-  saveAs(blob, "planet_idle_game_save.txt");
-}
-
-function importFromFile() {
-  const fileInput = document.getElementById('import-file');
-  fileInput.click();
-}
-
-function handleFileImport(event) {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        const gameStateBase64 = e.target.result;
-        const gameStateString = atob(gameStateBase64);
-        const gameState = JSON.parse(gameStateString);
-        
-        life = gameState.life;
-        humans = gameState.humans;
-        animals = gameState.animals;
-        planetsProduced = gameState.planetsProduced;
-        lifePerSecond = gameState.lifePerSecond;
-        lifePerClick = gameState.lifePerClick;
-        planetUpgradeCost = gameState.planetUpgradeCost;
-        humanUpgradeCost = gameState.humanUpgradeCost;
-        animalUpgradeCost = gameState.animalUpgradeCost;
-        clickUpgradeCost = gameState.clickUpgradeCost;
-        educationLevel = gameState.educationLevel;
-        technologyLevel = gameState.technologyLevel;
-        ecosystemLevel = gameState.ecosystemLevel;
-        biodiversityLevel = gameState.biodiversityLevel;
-        educationUpgradeCost = gameState.educationUpgradeCost;
-        technologyUpgradeCost = gameState.technologyUpgradeCost;
-        ecosystemUpgradeCost = gameState.ecosystemUpgradeCost;
-        biodiversityUpgradeCost = gameState.biodiversityUpgradeCost;
-        agricultureUpgradeCost = gameState.agricultureUpgradeCost;
-        conservationUpgradeCost = gameState.conservationUpgradeCost;
-        totalLifeProduced = gameState.totalLifeProduced;
-        totalClicks = gameState.totalClicks;
-        humansCreated = gameState.humansCreated;
-        animalsCreated = gameState.animalsCreated;
-        gameSeconds = gameState.gameSeconds;
-        gameDays = gameState.gameDays;
-        gameYears = gameState.gameYears;
-        isSoundEnabled = gameState.isSoundEnabled;
-        isMusicEnabled = gameState.isMusicEnabled;
-        isSharpnessEnabled = gameState.isSharpnessEnabled;
-        isCloseupEnabled = gameState.isCloseupEnabled;
-        isFastNotesEnabled = gameState.isFastNotesEnabled;
-
-        document.getElementById('toggle-sound').textContent = `Sound Effects: ${isSoundEnabled ? 'On' : 'Off'}`;
-        document.getElementById('toggle-music').textContent = `Music: ${isMusicEnabled ? 'On' : 'Off'}`;
-        document.getElementById('toggle-short-notation').textContent = `Short Numbers: ${gameState.isShortNotationOn ? 'On' : 'Off'}`;
-        document.getElementById('toggle-sharpness').textContent = `Galaxy Sharpness: ${isSharpnessEnabled ? 'On' : 'Off'}`;
-        document.getElementById('toggle-closeup').textContent = `Planet Close-up: ${isCloseupEnabled ? 'On' : 'Off'}`;
-        document.getElementById('toggle-fast-notes').textContent = `Fast Notes: ${isFastNotesEnabled ? 'On' : 'Off'}`;
-
-        updateSharpness();
-        updateCounters();
-        updateTimeCounter();
-        updateStats();
-        updateAllUpgradeButtonTexts();
-
-        alert('Game progress imported successfully!');
-      } catch (error) {
-        console.error("Failed to import game state:", error);
-        alert('Failed to import game progress. The file may be corrupted or in an incorrect format.');
-      }
-    };
-    reader.readAsText(file);
-  }
-}
-
-document.getElementById('export-game').addEventListener('click', exportToFile);
-document.getElementById('import-game').addEventListener('click', importFromFile);
-document.getElementById('import-file').addEventListener('change', handleFileImport);
 
 document.addEventListener('DOMContentLoaded', initMobileTabs);
 </script>
