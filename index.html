@@ -228,6 +228,22 @@
     border-radius: 10px;
     padding: 10px;
   }
+  #vignette-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.8) 150%);
+  }
+
+  #vignette-overlay.active {
+    opacity: 1;
+  }
 </style>
 </head>
 <body>
@@ -320,6 +336,7 @@
         <button class="game-btn" id="toggle-sharpness">Galaxy Sharpness: Off</button>
         <button class="game-btn" id="toggle-closeup">Planet Close-up: Off</button>
         <button class="game-btn" id="toggle-fast-notes">Fast Notes: On</button>
+        <button class="game-btn" id="toggle-vignette">Vignette Effect: Off</button>
       </div>
       <div id="game-info">
         <p id="zoom-info">Zoom: Z (in) / O (out)</p>
@@ -328,6 +345,7 @@
     </div>
   </div>
 </div>
+<div id="vignette-overlay"></div>
 <script>
 let audioContext;
 let clickBuffer;
@@ -403,6 +421,7 @@ let rotationSpeed = 0.001;
 let lastActiveTime = Date.now();
 let offlineProgressNotification = null;
 let isFastNotesEnabled = true;
+let isVignetteEnabled = false;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -499,9 +518,14 @@ function loadGame() {
       isSoundEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
       isMusicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
       isSharpnessEnabled = gameState.isSharpnessEnabled || false;
-      isFastNotesEnabled = gameState.isFastNotesEnabled !== undefined ? gameState.isFastNotesEnabled : true;
       isCloseupEnabled = gameState.isCloseupEnabled || false;
-
+      
+      document.getElementById('toggle-vignette').textContent = `Vignette Effect: ${isVignetteEnabled ? 'On' : 'Off'}`;
+      document.getElementById('vignette-overlay').classList.toggle('active', isVignetteEnabled);
+      
+      document.getElementById('toggle-closeup').textContent = `Planet Close-up: ${isCloseupEnabled ? 'On' : 'Off'}`;
+      updateCameraPosition();
+      
       const lastActiveTime = parseInt(localStorage.getItem('lastActiveTime') || Date.now().toString(), 10);
       const offlineProgress = calculateOfflineProgress(lastActiveTime);
       if (offlineProgress) {
@@ -511,7 +535,6 @@ function loadGame() {
       document.getElementById('toggle-sound').textContent = `Sound Effects: ${isSoundEnabled ? 'On' : 'Off'}`;
       document.getElementById('toggle-music').textContent = `Music: ${isMusicEnabled ? 'On' : 'Off'}`;
       document.getElementById('toggle-short-notation').textContent = `Short Numbers: ${gameState.isShortNotationOn !== undefined ? (gameState.isShortNotationOn ? 'On' : 'Off') : 'On'}`;
-      document.getElementById('toggle-closeup').textContent = `Planet Close-up: ${isCloseupEnabled ? 'On' : 'Off'}`;
       document.getElementById('toggle-sharpness').textContent = `Galaxy Sharpness: ${isSharpnessEnabled ? 'On' : 'Off'}`;
       document.getElementById('toggle-fast-notes').textContent = `Fast Notes: ${isFastNotesEnabled ? 'On' : 'Off'}`;
       updateSharpness();
@@ -568,6 +591,7 @@ function saveGame() {
       isSharpnessEnabled,
       isCloseupEnabled,
       isFastNotesEnabled,
+      isVignetteEnabled,
     };
     localStorage.setItem('planetIdleGame', JSON.stringify(gameState));
     localStorage.setItem('lastActiveTime', Date.now().toString());
@@ -625,6 +649,7 @@ function toggleCloseup() {
   isCloseupEnabled = !isCloseupEnabled;
   document.getElementById('toggle-closeup').textContent = `Planet Close-up: ${isCloseupEnabled ? 'On' : 'Off'}`;
   updateCameraPosition();
+  saveGame();
 }
 
 document.getElementById('toggle-sharpness').addEventListener('click', () => {
@@ -640,6 +665,15 @@ function toggleFastNotes() {
 }
 
 document.getElementById('toggle-fast-notes').addEventListener('click', toggleFastNotes);
+
+function toggleVignette() {
+  isVignetteEnabled = !isVignetteEnabled;
+  document.getElementById('toggle-vignette').textContent = `Vignette Effect: ${isVignetteEnabled ? 'On' : 'Off'}`;
+  document.getElementById('vignette-overlay').classList.toggle('active', isVignetteEnabled);
+  saveGame();
+}
+
+document.getElementById('toggle-vignette').addEventListener('click', toggleVignette);
 
 function updateCameraPosition() {
   const time = Date.now() * 0.0005;
