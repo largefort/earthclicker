@@ -1,13 +1,11 @@
-<html>
+<html><head><base href="https://websim.example.com/three-js-planet-idle-v7/">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Advanced Three.js Planet Idle Game with Zoom and Animals</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4695170235902689" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_ADSENSE_CLIENT_ID" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <link rel="stylesheet" href="disable.css">
 <style>
   body, html {
     margin: 0;
@@ -230,21 +228,6 @@
     border-radius: 10px;
     padding: 10px;
   }
-  #vignette-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 9999;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.8) 150%);
-  }
-  #vignette-overlay.active {
-    opacity: 1;
-  }
 </style>
 </head>
 <body>
@@ -268,12 +251,12 @@
     <div id="ad-container">
       <ins class="adsbygoogle"
            style="display:block"
-           data-ad-client="ca-pub-4695170235902689"
-           data-ad-slot="3598751735"
+           data-ad-client="ca-pub-YOUR_ADSENSE_CLIENT_ID"
+           data-ad-slot="YOUR_AD_SLOT_ID"
            data-ad-format="auto"
            data-full-width-responsive="true"></ins>
       <script>
-        (adsbygoogle = window.adsbygoogle || []).push({});
+           (adsbygoogle = window.adsbygoogle || []).push({});
       </script>
     </div>
   </div>
@@ -337,10 +320,6 @@
         <button class="game-btn" id="toggle-sharpness">Galaxy Sharpness: Off</button>
         <button class="game-btn" id="toggle-closeup">Planet Close-up: Off</button>
         <button class="game-btn" id="toggle-fast-notes">Fast Notes: On</button>
-        <button class="game-btn" id="toggle-vignette">Vignette Effect: Off</button>
-        <button class="game-btn" id="export-game">Export Game</button>
-        <button class="game-btn" id="import-game">Import Game</button>
-        <input type="file" id="import-file" style="display: none;">
       </div>
       <div id="game-info">
         <p id="zoom-info">Zoom: Z (in) / O (out)</p>
@@ -349,7 +328,6 @@
     </div>
   </div>
 </div>
-<div id="vignette-overlay"></div>
 <script>
 let audioContext;
 let clickBuffer;
@@ -357,7 +335,6 @@ let totalLifeProduced = 0;
 let totalClicks = 0;
 let humansCreated = 0;
 let animalsCreated = 0;
-let isFastNotesEnabled = true;
 
 function initializeAudio() {
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -425,7 +402,7 @@ let isSharpnessEnabled = false;
 let rotationSpeed = 0.001;
 let lastActiveTime = Date.now();
 let offlineProgressNotification = null;
-let isVignetteEnabled = false;
+let isFastNotesEnabled = true;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -492,16 +469,56 @@ function loadGame() {
     const savedState = localStorage.getItem('planetIdleGame');
     if (savedState) {
       const gameState = JSON.parse(savedState);
-      loadGameState(gameState);
-      updateCounters();
-      updateStats();
-      updateAllUpgradeButtonTexts();
+      life = gameState.life;
+      humans = gameState.humans;
+      animals = gameState.animals;
+      planetsProduced = gameState.planetsProduced;
+      lifePerSecond = gameState.lifePerSecond;
+      lifePerClick = gameState.lifePerClick;
+      planetUpgradeCost = gameState.planetUpgradeCost;
+      humanUpgradeCost = gameState.humanUpgradeCost;
+      animalUpgradeCost = gameState.animalUpgradeCost;
+      clickUpgradeCost = gameState.clickUpgradeCost || 50;
+      educationLevel = gameState.educationLevel || 0;
+      technologyLevel = gameState.technologyLevel || 0;
+      ecosystemLevel = gameState.ecosystemLevel || 0;
+      biodiversityLevel = gameState.biodiversityLevel || 0;
+      educationUpgradeCost = gameState.educationUpgradeCost || 200;
+      technologyUpgradeCost = gameState.technologyUpgradeCost || 500;
+      ecosystemUpgradeCost = gameState.ecosystemUpgradeCost || 150;
+      biodiversityUpgradeCost = gameState.biodiversityUpgradeCost || 300;
+      agricultureUpgradeCost = gameState.agricultureUpgradeCost || 250;
+      conservationUpgradeCost = gameState.conservationUpgradeCost || 350;
+      totalLifeProduced = gameState.totalLifeProduced || 0;
+      totalClicks = gameState.totalClicks || 0;
+      humansCreated = gameState.humansCreated || 0;
+      animalsCreated = gameState.animalsCreated || 0;
+      gameSeconds = gameState.gameSeconds || 0;
+      gameDays = gameState.gameDays || 0;
+      gameYears = gameState.gameYears || 0;
+      isSoundEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
+      isMusicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
+      isSharpnessEnabled = gameState.isSharpnessEnabled || false;
+      isFastNotesEnabled = gameState.isFastNotesEnabled !== undefined ? gameState.isFastNotesEnabled : true;
+      isCloseupEnabled = gameState.isCloseupEnabled || false;
 
       const lastActiveTime = parseInt(localStorage.getItem('lastActiveTime') || Date.now().toString(), 10);
       const offlineProgress = calculateOfflineProgress(lastActiveTime);
       if (offlineProgress) {
         showOfflineProgressNotification(offlineProgress.lifeGained, offlineProgress.timePassed);
       }
+
+      document.getElementById('toggle-sound').textContent = `Sound Effects: ${isSoundEnabled ? 'On' : 'Off'}`;
+      document.getElementById('toggle-music').textContent = `Music: ${isMusicEnabled ? 'On' : 'Off'}`;
+      document.getElementById('toggle-short-notation').textContent = `Short Numbers: ${gameState.isShortNotationOn !== undefined ? (gameState.isShortNotationOn ? 'On' : 'Off') : 'On'}`;
+      document.getElementById('toggle-closeup').textContent = `Planet Close-up: ${isCloseupEnabled ? 'On' : 'Off'}`;
+      document.getElementById('toggle-sharpness').textContent = `Galaxy Sharpness: ${isSharpnessEnabled ? 'On' : 'Off'}`;
+      document.getElementById('toggle-fast-notes').textContent = `Fast Notes: ${isFastNotesEnabled ? 'On' : 'Off'}`;
+      updateSharpness();
+      updateCounters();
+      updateTimeCounter();
+      updateStats();
+      updateAllUpgradeButtonTexts();
     } else {
       console.log("No saved game found. Starting a new game.");
     }
@@ -551,7 +568,6 @@ function saveGame() {
       isSharpnessEnabled,
       isCloseupEnabled,
       isFastNotesEnabled,
-      isVignetteEnabled,
     };
     localStorage.setItem('planetIdleGame', JSON.stringify(gameState));
     localStorage.setItem('lastActiveTime', Date.now().toString());
@@ -560,129 +576,15 @@ function saveGame() {
   }
 }
 
-function loadGameState(gameState) {
-  life = gameState.life;
-  humans = gameState.humans;
-  animals = gameState.animals;
-  planetsProduced = gameState.planetsProduced;
-  lifePerSecond = gameState.lifePerSecond;
-  lifePerClick = gameState.lifePerClick;
-  planetUpgradeCost = gameState.planetUpgradeCost;
-  humanUpgradeCost = gameState.humanUpgradeCost;
-  animalUpgradeCost = gameState.animalUpgradeCost;
-  clickUpgradeCost = gameState.clickUpgradeCost;
-  educationLevel = gameState.educationLevel;
-  technologyLevel = gameState.technologyLevel;
-  ecosystemLevel = gameState.ecosystemLevel;
-  biodiversityLevel = gameState.biodiversityLevel;
-  educationUpgradeCost = gameState.educationUpgradeCost;
-  technologyUpgradeCost = gameState.technologyUpgradeCost;
-  ecosystemUpgradeCost = gameState.ecosystemUpgradeCost;
-  biodiversityUpgradeCost = gameState.biodiversityUpgradeCost;
-  agricultureUpgradeCost = gameState.agricultureUpgradeCost;
-  conservationUpgradeCost = gameState.conservationUpgradeCost;
-  totalLifeProduced = gameState.totalLifeProduced;
-  totalClicks = gameState.totalClicks;
-  humansCreated = gameState.humansCreated;
-  animalsCreated = gameState.animalsCreated;
-  gameSeconds = gameState.gameSeconds;
-  gameDays = gameState.gameDays;
-  gameYears = gameState.gameYears;
-  isSoundEnabled = gameState.isSoundEnabled;
-  isMusicEnabled = gameState.isMusicEnabled;
-  isSharpnessEnabled = gameState.isSharpnessEnabled;
-  isCloseupEnabled = gameState.isCloseupEnabled;
-  isFastNotesEnabled = gameState.isFastNotesEnabled;
-  isVignetteEnabled = gameState.isVignetteEnabled;
-
-  document.getElementById('toggle-sound').textContent = `Sound Effects: ${isSoundEnabled ? 'On' : 'Off'}`;
-  document.getElementById('toggle-music').textContent = `Music: ${isMusicEnabled ? 'On' : 'Off'}`;
-  document.getElementById('toggle-short-notation').textContent = `Short Numbers: ${gameState.isShortNotationOn ? 'On' : 'Off'}`;
-  document.getElementById('toggle-sharpness').textContent = `Galaxy Sharpness: ${isSharpnessEnabled ? 'On' : 'Off'}`;
-  document.getElementById('toggle-closeup').textContent = `Planet Close-up: ${isCloseupEnabled ? 'On' : 'Off'}`;
-  document.getElementById('toggle-fast-notes').textContent = `Fast Notes: ${isFastNotesEnabled ? 'On' : 'Off'}`;
-  document.getElementById('toggle-vignette').textContent = `Vignette Effect: ${isVignetteEnabled ? 'On' : 'Off'}`;
-
-  updateCameraPosition();
-  updateSharpness();
-  document.getElementById('vignette-overlay').classList.toggle('active', isVignetteEnabled);
+function autosave() {
+  saveGame();
+  console.log('Game autosaved');
 }
 
-function exportGame() {
-  const gameState = {
-    life,
-    humans,
-    animals,
-    planetsProduced,
-    lifePerSecond,
-    lifePerClick,
-    planetUpgradeCost,
-    humanUpgradeCost,
-    animalUpgradeCost,
-    clickUpgradeCost,
-    educationLevel,
-    technologyLevel,
-    ecosystemLevel,
-    biodiversityLevel,
-    educationUpgradeCost,
-    technologyUpgradeCost,
-    ecosystemUpgradeCost,
-    biodiversityUpgradeCost,
-    agricultureUpgradeCost,
-    conservationUpgradeCost,
-    totalLifeProduced,
-    totalClicks,
-    humansCreated,
-    animalsCreated,
-    gameSeconds,
-    gameDays,
-    gameYears,
-    isSoundEnabled,
-    isMusicEnabled,
-    isShortNotationOn: document.getElementById('toggle-short-notation').textContent === 'Short Numbers: On',
-    isSharpnessEnabled,
-    isCloseupEnabled,
-    isFastNotesEnabled,
-    isVignetteEnabled,
-  };
-
-  const gameStateString = JSON.stringify(gameState);
-  const encodedGameState = btoa(gameStateString);
-  const blob = new Blob([encodedGameState], {type: "text/plain;charset=utf-8"});
-  saveAs(blob, "earthclicker.txt");
-
-  updateStats();
+function autoload() {
+  loadGame();
+  console.log('Game autoloaded');
 }
-
-function importGame() {
-  document.getElementById('import-file').click();
-}
-
-document.getElementById('import-file').addEventListener('change', function(event) {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        const encodedGameState = e.target.result;
-        const gameStateString = atob(encodedGameState);
-        const gameState = JSON.parse(gameStateString);
-        loadGameState(gameState);
-        updateCounters();
-        updateStats();
-        updateAllUpgradeButtonTexts();
-        alert('Game imported successfully!');
-      } catch (error) {
-        console.error("Failed to import game:", error);
-        alert('Failed to import game. The file might be corrupted or in the wrong format.');
-      }
-    };
-    reader.readAsText(file);
-  }
-});
-
-document.getElementById('export-game').addEventListener('click', exportGame);
-document.getElementById('import-game').addEventListener('click', importGame);
 
 document.addEventListener('DOMContentLoaded', () => {
   loadGame();
@@ -697,14 +599,6 @@ setInterval(() => {
   autosave();
   autoload();
 }, 30000);
-
-function autosave() {
-  saveGame();
-}
-
-function autoload() {
-  loadGame();
-}
 
 document.getElementById('toggle-music').addEventListener('click', () => {
   isMusicEnabled = !isMusicEnabled;
@@ -731,7 +625,6 @@ function toggleCloseup() {
   isCloseupEnabled = !isCloseupEnabled;
   document.getElementById('toggle-closeup').textContent = `Planet Close-up: ${isCloseupEnabled ? 'On' : 'Off'}`;
   updateCameraPosition();
-  saveGame();
 }
 
 document.getElementById('toggle-sharpness').addEventListener('click', () => {
@@ -740,22 +633,13 @@ document.getElementById('toggle-sharpness').addEventListener('click', () => {
   updateSharpness();
 });
 
-document.getElementById('toggle-fast-notes').addEventListener('click', toggleFastNotes);
-
 function toggleFastNotes() {
   isFastNotesEnabled = !isFastNotesEnabled;
   document.getElementById('toggle-fast-notes').textContent = `Fast Notes: ${isFastNotesEnabled ? 'On' : 'Off'}`;
   saveGame();
 }
 
-document.getElementById('toggle-vignette').addEventListener('click', toggleVignette);
-
-function toggleVignette() {
-  isVignetteEnabled = !isVignetteEnabled;
-  document.getElementById('toggle-vignette').textContent = `Vignette Effect: ${isVignetteEnabled ? 'On' : 'Off'}`;
-  document.getElementById('vignette-overlay').classList.toggle('active', isVignetteEnabled);
-  saveGame();
-}
+document.getElementById('toggle-fast-notes').addEventListener('click', toggleFastNotes);
 
 function updateCameraPosition() {
   const time = Date.now() * 0.0005;
@@ -1156,7 +1040,12 @@ function initMobileTabs() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', initMobileTabs);
+document.addEventListener('deviceready', onDeviceReady, false);
+
+function onDeviceReady() {
+  document.getElementById('export-progress').addEventListener('click', exportProgress);
+  document.getElementById('import-progress').addEventListener('click', importProgress);
+}
 </script>
 </body>
 </html>
