@@ -8,19 +8,22 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
   <style>
     body, html {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e0e0e0;
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
       font-family: 'Roboto', sans-serif;
-      background-color: #0f0f1f;
-      color: #e0e0e0;
     }
     #game-container {
       position: relative;
       width: 100%;
       height: calc(100% - 70px);
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      perspective: 1000;
     }
     #mobile-nav {
       position: fixed;
@@ -28,34 +31,37 @@
       left: 0;
       right: 0;
       height: 70px;
-      background: linear-gradient(to top, rgba(20, 20, 40, 0.95), rgba(30, 30, 60, 0.95));
+      background: linear-gradient(to top, rgba(26, 26, 46, 0.95), rgba(22, 33, 62, 0.95));
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
       box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
       display: flex;
       justify-content: space-around;
       align-items: center;
       z-index: 1000;
       padding: 0 10px;
+      transform: translateZ(0);
     }
     .nav-btn {
-      background: none;
-      border: none;
-      color: #a0a0b0;
-      font-size: 14px;
-      font-weight: bold;
-      text-transform: uppercase;
-      padding: 10px 15px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 15px;
+      padding: 12px 20px;
+      border-radius: 25px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
-      border-radius: 20px;
       outline: none;
     }
     .nav-btn:hover {
-      color: #e0e0e0;
-      background-color: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
     }
     .nav-btn.active {
-      color: #00ccff;
-      background-color: rgba(0, 204, 255, 0.2);
-      box-shadow: 0 0 10px rgba(0, 204, 255, 0.3);
+      background: linear-gradient(45deg, #4a90e2, #67b26f);
+      border: none;
+      color: white;
+      box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
     }
     #tab-content {
       height: 100%;
@@ -64,9 +70,12 @@
       display: none;
       height: 100%;
       overflow-y: auto;
+      transition: opacity 0.3s ease;
+      opacity: 0;
     }
     .tab-pane.active {
       display: block;
+      opacity: 1;
     }
     #hud {
       position: absolute;
@@ -76,9 +85,12 @@
       width: auto;
       max-width: 80%;
       margin: 0;
-      padding: 15px;
-      background-color: rgba(0, 0, 0, 0.7);
-      border-radius: 10px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
       text-align: center;
     }
     #upgrades, #sidebar, #stats-container {
@@ -92,16 +104,14 @@
     }
     .upgrade-btn, .game-btn {
       margin: 5px;
-      padding: 10px;
-      background-color: #4a4a8a;
+      padding: 15px;
+      background: linear-gradient(45deg, rgba(74, 144, 226, 0.1), rgba(103, 178, 111, 0.1));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       color: white;
-      border: none;
       cursor: pointer;
-      border-radius: 8px;
-      transition: all 0.3s;
-      font-size: 14px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      text-align: center;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -109,9 +119,9 @@
       height: 100%;
     }
     .upgrade-btn:hover, .game-btn:hover {
-      background-color: #5a5a9a;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+      background: linear-gradient(45deg, rgba(74, 144, 226, 0.2), rgba(103, 178, 111, 0.2));
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
     }
     #upgrade-grid {
       display: grid;
@@ -126,10 +136,12 @@
       padding-bottom: 70px;
     }
     #life-counter {
-      font-size: 28px;
-      margin-bottom: 8px;
-      color: #00ff9d;
-      text-shadow: 0 0 10px #00ff9d;
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(45deg, #4a90e2, #67b26f);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: none;
     }
     #humans-counter, #animals-counter, #lps-counter {
       font-size: 16px;
@@ -141,28 +153,25 @@
       margin-top: 8px;
       color: #ffd700;
     }
-    .click-text {
-      position: absolute;
-      font-size: 20px;
-      color: #00ff00;
-      pointer-events: none;
-      z-index: 1000;
-      will-change: transform, opacity;
-      transform: translate(-50%, -50%); /* Center the text at click point */
-      white-space: nowrap;
-      text-shadow: 0 0 5px currentColor;
-    }
-    .life-particle {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      background-color: #00ff00;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 1000;
-      box-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
-      will-change: transform, opacity;
-    }
+     .click-text {
+    position: absolute;
+    font-size: 20px;
+    color: #00ff00;
+    pointer-events: none;
+    z-index: 1000;
+    will-change: transform, opacity;
+  }
+  .life-particle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: #00ff00;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+    will-change: transform, opacity;
+  }
     #offline-progress-notification {
       position: fixed;
       bottom: 70px;
@@ -186,19 +195,16 @@
       #hud {
         max-width: 90%;
         padding: 10px;
+        margin: 10px;
       }
       #life-counter {
-        font-size: 24px;
+        font-size: 28px;
       }
       #humans-counter, #animals-counter, #lps-counter {
         font-size: 14px;
       }
       #time-counter {
         font-size: 12px;
-      }
-      #upgrades, #sidebar, #stats-container {
-        margin: 5px;
-        padding: 10px;
       }
       .upgrade-btn, .game-btn {
         font-size: 14px;
@@ -212,14 +218,15 @@
       padding-bottom: 70px;
     }
     .stat-item {
-      background-color: rgba(0, 0, 0, 0.2);
-      padding: 10px;
-      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 20px;
+      transition: transform 0.3s ease;
     }
-    .stat-label {
-      font-weight: bold;
-      display: block;
-      margin-bottom: 5px;
+    .stat-item:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.08);
     }
     #ad-container {
       width: 100%;
@@ -242,9 +249,43 @@
       transition: opacity 0.3s ease;
       background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.8) 150%);
     }
-
     #vignette-overlay.active {
       opacity: 1;
+    }
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 24px;
+      z-index: 1001;
+    }
+    .loading-spinner {
+      border: 8px solid rgba(255, 255, 255, 0.1);
+      border-top: 8px solid #fff;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+    .loading-text {
+      margin-top: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
     }
   </style>
 </head>
