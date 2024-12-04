@@ -1,5 +1,5 @@
 // steaminit.js
-const SteamAppId = 'your_steam_app_id'; // Replace with your Steam App ID
+const SteamAppId = '3351960'; // Replace with your Steam App ID
 
 // Ensure Steamworks.js is loaded
 if (typeof Steamworks === 'undefined') {
