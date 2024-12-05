@@ -1,6 +1,6 @@
 function initializeAudio() {
-  clickSound = new Audio('https://example.com/click.mp3');
-  backgroundMusic = new Audio('https://example.com/ambient_space.mp3');
+  clickSound = new Audio('audio/beep-space-button_G#_major.wav');
+  backgroundMusic = new Audio('audio/ShadowsAndDust-chosic.com_.mp3');
   backgroundMusic.loop = true;
 }
 
