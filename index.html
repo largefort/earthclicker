@@ -387,7 +387,7 @@ let animalsCreated = 0;
 
 function initializeAudio() {
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  fetch('https://assets.mixkit.co/sfx/preview/mixkit-soft-pop-click-2581.mp3')
+  fetch('audio/beep-space-button_G#_major.wav')
     .then(response => response.arrayBuffer())
     .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
     .then(audioBuffer => {
@@ -447,7 +447,7 @@ let gameDays = 0;
 let gameYears = 0;
 let isSoundEnabled = true;
 let isMusicEnabled = true;
-let isSharpnessEnabled = false;
+let isSharpnessEnabled = true;
 let rotationSpeed = 0.001;
 let lastActiveTime = Date.now();
 let offlineProgressNotification = null;
@@ -547,9 +547,9 @@ function loadGame() {
       gameYears = gameState.gameYears || 0;
       isSoundEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
       isMusicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
-      isSharpnessEnabled = gameState.isSharpnessEnabled || false;
+      isSharpnessEnabled = gameState.isSharpnessEnabled || true;
       isFastNotesEnabled = gameState.isFastNotesEnabled !== undefined ? gameState.isFastNotesEnabled : true;
-      isCloseupEnabled = gameState.isCloseupEnabled || false;
+      isCloseupEnabled = gameState.isCloseupEnabled || true;
 
       const lastActiveTime = parseInt(localStorage.getItem('lastActiveTime') || Date.now().toString(), 10);
       const offlineProgress = calculateOfflineProgress(lastActiveTime);
