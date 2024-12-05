@@ -421,46 +421,6 @@
   let criticalHits = 0;
   let criticalUpgradeCost = 150;
 
-  function initializeAudio() {
-    try {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-      // Only attempt to fetch audio if we successfully created the context
-      if (audioContext) {
-        fetch('audio/beep-space-button_G#_major.wav')
-          .then(response => response.arrayBuffer())
-          .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-          .then(audioBuffer => {
-            clickBuffer = audioBuffer;
-          })
-          .catch(error => {
-            console.warn('Audio loading failed:', error);
-            // Gracefully handle audio loading failure
-            clickBuffer = null;
-          });
-      }
-    } catch (error) {
-      console.warn('Audio context creation failed:', error);
-      // Gracefully handle audio context creation failure
-      audioContext = null;
-    }
-  }
-
-  function playClickSound() {
-    if (!audioContext || !clickBuffer || !isSoundEnabled) {
-      return; // Exit early if any required components are missing
-    }
-
-    try {
-      const source = audioContext.createBufferSource();
-      source.buffer = clickBuffer;
-      source.connect(audioContext.destination);
-      source.start();
-    } catch (error) {
-      console.warn('Error playing click sound:', error);
-    }
-  }
-
   function isLocalStorageAvailable() {
     try {
       const test = '__storage_test__';
@@ -1237,37 +1197,6 @@ function handleClick(event) {
   }
 
   document.addEventListener('DOMContentLoaded', initMobileTabs);
-
-  function toggleBackgroundMusic() {
-    try {
-      if (isMusicEnabled) {
-        const audio = new Audio();
-        audio.src = 'audio/ShadowsAndDust-chosic.com_.mp3';
-        audio.volume = 0.5;
-        audio.loop = true;
-
-        // Add error handling for audio playback
-        audio.onerror = (error) => {
-          console.warn('Background music failed to load:', error);
-          isMusicEnabled = false;
-          document.getElementById('toggle-music').textContent = 'Music: Off';
-        };
-
-        // Only attempt to play if autoplay is likely to succeed
-        audio.play().catch(error => {
-          console.warn('Autoplay prevented:', error);
-          isMusicEnabled = false;
-          document.getElementById('toggle-music').textContent = 'Music: Off';
-        });
-      }
-    } catch (error) {
-      console.warn('Error setting up background music:', error);
-      isMusicEnabled = false;
-      document.getElementById('toggle-music').textContent = 'Music: Off';
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', toggleBackgroundMusic);
 </script>
 </body>
 </html>
