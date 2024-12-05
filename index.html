@@ -1320,19 +1320,7 @@ function handleClick(event) {
     }
   }
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Attach the toggle functionality to the button
-  const musicToggleButton = document.getElementById('toggle-music');
-  if (musicToggleButton) {
-    musicToggleButton.addEventListener('click', toggleBackgroundMusic);
-  }
-
-  // Attempt to start music on page load if enabled
-  if (isMusicEnabled) {
-    toggleBackgroundMusic();
-  }
-});
+  document.addEventListener('DOMContentLoaded', toggleBackgroundMusic);
   
 </script>
 </body>
