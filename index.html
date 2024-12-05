@@ -1,4 +1,4 @@
-<html><head>
+<html><head><base href="https://websim.example.com/three-js-planet-idle-v7/">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>EarthClicker</title>
@@ -7,7 +7,6 @@
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4695170235902689" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-  <script src="steaminit.js"></script>
   <style>
     body, html {
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -309,6 +308,16 @@
         <div id="time-counter">Year 0, Day 0, 00:00:00</div>
       </div>
     </div>
+    <div id="ad-container">
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-4695170235902689"
+           data-ad-slot="3598751735"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>
+        (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
     </div>
   </div>
   <div id="creativity-tab" class="tab-pane">
@@ -429,7 +438,7 @@
 
       // Only attempt to fetch audio if we successfully created the context
       if (audioContext) {
-        fetch('https://assets.mixkit.co/sfx/preview/mixkit-soft-pop-click-2581.mp3')
+        fetch('audio/beep-space-button_G#_major.wav')
           .then(response => response.arrayBuffer())
           .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
           .then(audioBuffer => {
@@ -1244,7 +1253,7 @@ function handleClick(event) {
     try {
       if (isMusicEnabled) {
         const audio = new Audio();
-        audio.src = 'https://example.com/planet-idle-music.mp3';
+        audio.src = 'audio/ShadowsAndDust-chosic.com_.mp3';
         audio.volume = 0.5;
         audio.loop = true;
 
