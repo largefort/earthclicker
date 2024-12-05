@@ -432,62 +432,6 @@
   let criticalHits = 0;
   let criticalUpgradeCost = 150;
 
-function initializeAudio() {
-  try {
-    // Create an AudioContext instance
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-    // Hardcoded MP3 file for the click sound
-    const audioSrc = 'audio/beep-space-button_G#_major.wav';
-
-    // Validate MP3 file format
-    if (!audioSrc.endsWith('.mp3')) {
-      console.warn('Click sound must be an MP3 file.');
-      clickBuffer = null;
-      return;
-    }
-
-    // Fetch and decode the audio file
-    fetch(audioSrc)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Failed to fetch audio: ${response.statusText}`);
-        }
-        return response.arrayBuffer();
-      })
-      .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-      .then(audioBuffer => {
-        clickBuffer = audioBuffer; // Store the decoded audio data
-      })
-      .catch(error => {
-        console.warn('Audio loading failed:', error);
-        clickBuffer = null; // Gracefully handle loading failure
-      });
-  } catch (error) {
-    console.warn('Audio context creation failed:', error);
-    audioContext = null; // Gracefully handle context creation failure
-  }
-}
-
-function playClickSound() {
-  if (!audioContext || !clickBuffer || !isSoundEnabled) {
-    return; // Exit early if components are missing or sound is disabled
-  }
-
-  try {
-    const source = audioContext.createBufferSource(); // Create a buffer source
-    source.buffer = clickBuffer; // Assign the loaded audio buffer
-    source.connect(audioContext.destination); // Connect to output
-    source.start(); // Play the sound
-  } catch (error) {
-    console.warn('Error playing click sound:', error);
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Initialize the audio on page load
-  initializeAudio();
-
   function isLocalStorageAvailable() {
     try {
       const test = '__storage_test__';
@@ -1264,63 +1208,6 @@ function handleClick(event) {
   }
 
   document.addEventListener('DOMContentLoaded', initMobileTabs);
-
-  function toggleBackgroundMusic() {
-  try {
-    const musicToggleButton = document.getElementById('toggle-music');
-    const audioSrc = 'audio/ShadowsAndDust-chosic.com_.mp3'; // Hardcoded MP3 URL
-
-    // Validate that the file is an MP3
-    if (!audioSrc.endsWith('.mp3')) {
-      console.warn('Background music must be an MP3 file.');
-      isMusicEnabled = true;
-      if (musicToggleButton) {
-        musicToggleButton.textContent = 'Music: Off';
-      }
-      return;
-    }
-
-    // Initialize the audio element if not already done
-    if (!audio) {
-      audio = new Audio(audioSrc);
-      audio.volume = 0.5;
-      audio.loop = true;
-
-      // Add error handling for audio playback
-      audio.onerror = (error) => {
-        console.warn('Background music failed to load:', error);
-        isMusicEnabled = false;
-        musicToggleButton.textContent = 'Music: Off';
-      };
-    }
-
-    if (isMusicEnabled) {
-      // If music is currently enabled, turn it off
-      audio.pause();
-      audio.currentTime = 0; // Reset playback position
-      isMusicEnabled = false;
-      musicToggleButton.textContent = 'Music: Off';
-    } else {
-      // If music is currently disabled, try to enable it
-      audio.play().then(() => {
-        isMusicEnabled = true;
-        musicToggleButton.textContent = 'Music: On';
-      }).catch((error) => {
-        console.warn('Autoplay prevented or failed:', error);
-        isMusicEnabled = false;
-        musicToggleButton.textContent = 'Music: Off';
-      });
-    }
-  } catch (error) {
-    console.warn('Error toggling background music:', error);
-    isMusicEnabled = false;
-    const musicToggleButton = document.getElementById('toggle-music');
-    if (musicToggleButton) {
-      musicToggleButton.textContent = 'Music: Off';
-    }
-  }
-}
-  document.addEventListener('DOMContentLoaded', toggleBackgroundMusic);
   
 </script>
 </body>
