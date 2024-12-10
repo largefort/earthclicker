@@ -528,53 +528,20 @@
 
     if (timeDiff > 60) {
       const offlineLife = lifePerSecond * timeDiff;
-
-      const humanProduction = Math.floor((humans * timeDiff) / 100);
-      const animalProduction = Math.floor((animals * timeDiff) / 100);
-
       life += offlineLife;
-      totalLifeProduced += offlineLife;
-      humansCreated += humanProduction;
-      animalsCreated += animalProduction;
-
-      const offlineSeconds = Math.floor(timeDiff);
-      gameSeconds += offlineSeconds % 86400;
-      const additionalDays = Math.floor(offlineSeconds / 86400);
-      gameDays += additionalDays % 365;
-      gameYears += Math.floor(additionalDays / 365);
-
-      while (gameSeconds >= 86400) {
-        gameSeconds -= 86400;
-        gameDays++;
-      }
-      while (gameDays >= 365) {
-        gameDays -= 365;
-        gameYears++;
-      }
-
-      updateStats();
-
-      return {
-        lifeGained: offlineLife,
-        timePassed: timeDiff,
-        humansGained: humanProduction,
-        animalsGained: animalProduction
-      };
+      return { lifeGained: offlineLife, timePassed: timeDiff };
     }
 
     return null;
   }
 
-  function showOfflineProgressNotification(lifeGained, timePassed, humansGained, animalsGained) {
+  function showOfflineProgressNotification(lifeGained, timePassed) {
     const notification = document.createElement('div');
     notification.id = 'offline-progress-notification';
     notification.innerHTML = `
       <p>Welcome back!</p>
       <p>You were away for ${formatTime(timePassed)}</p>
-      <p>You gained:</p>
-      <p>${formatNumber(lifeGained)} Life</p>
-      ${humansGained > 0 ? `<p>${formatNumber(humansGained)} Humans</p>` : ''}
-      ${animalsGained > 0 ? `<p>${formatNumber(animalsGained)} Animals</p>` : ''}
+      <p>You gained ${formatNumber(lifeGained)} life while offline</p>
     `;
     document.body.appendChild(notification);
 
@@ -584,6 +551,18 @@
         notification.remove();
       }, 1000);
     }, isFastNotesEnabled ? 2000 : 4000);
+  }
+
+  function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours} hours and ${minutes} minutes`;
+    } else if (minutes > 0) {
+      return `${minutes} minutes`;
+    } else {
+      return `${Math.floor(seconds)} seconds`;
+    }
   }
 
   function loadGame() {
