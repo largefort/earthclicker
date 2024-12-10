@@ -950,8 +950,8 @@
         planetsProduced++;
         totalLifeProduced += lifePerClick;
         // Reset LPS for this upgrade, then add specific rate
-        lifePerSecond -= 0.1; // Remove old rate
-        lifePerSecond += 0.1; // Add new rate
+        lifePerSecond -= 0.1; 
+        lifePerSecond += 0.1; 
         planetUpgradeCost = Math.floor(planetUpgradeCost * 1.5);
         updateUpgradeButtonText('planet-upgrade', 'Upgrade Planet', planetUpgradeCost);
         updateCounters();
@@ -986,6 +986,19 @@ function createAnimals() {
         updateUpgradeButtonText('animal-upgrade', 'Create Animals', animalUpgradeCost);
         updateCounters();
         updateStats();
+    }
+}
+
+function upgradeClick() {
+    if (life >= clickUpgradeCost) {
+        life -= clickUpgradeCost;
+        lifePerClick += 1; // Increase life per click
+        // Reset LPS for this upgrade if it contributes, then add specific rate
+        lifePerSecond -= 0; // Adjust if needed, but typically clicks don't add to LPS
+        lifePerSecond += 0; // Add LPS rate (if clicks are meant to contribute, adjust here)
+        clickUpgradeCost = Math.floor(clickUpgradeCost * 1.5);
+        updateUpgradeButtonText('click-upgrade', 'Upgrade Click', clickUpgradeCost);
+        updateCounters();
     }
 }
 
