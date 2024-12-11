@@ -7,7 +7,6 @@
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4695170235902689" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-  <script src="apocalypse.js"></script>
   <style>
     body, html {
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -289,49 +288,6 @@
       50% { transform: scale(1.05); }
       100% { transform: scale(1); }
     }
-    .apocalypse-active {
-    animation: earthShake 0.5s infinite;
-  }
-
-  @keyframes earthShake {
-    0%, 100% { transform: translate(0, 0) rotate(0); }
-    25% { transform: translate(-5px, -5px) rotate(-1deg); }
-    75% { transform: translate(5px, 5px) rotate(1deg); }
-  }
-
-  .explosion {
-    position: absolute;
-    width: 100px;
-    height: 100px;
-    pointer-events: none;
-    animation: explode 1s forwards;
-  }
-
-  @keyframes explode {
-    0% { transform: scale(0); opacity: 1; }
-    100% { transform: scale(4); opacity: 0; }
-  }
-
-  .apocalypse-btn {
-    background: linear-gradient(45deg, #ff4444, #cc0000);
-    color: white;
-    border: none;
-    padding: 15px 30px;
-    border-radius: 8px;
-    font-weight: bold;
-    margin: 10px;
-    cursor: pointer;
-    transition: all 0.3s;
-  }
-
-  .apocalypse-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
-  }
-
-  .apocalypse-active .apocalypse-btn {
-    background: linear-gradient(45deg, #44ff44, #00cc00);
-  }
   </style>
 </head>
 <body>
@@ -339,7 +295,6 @@
   <button class="nav-btn active" data-tab="home">Home</button>
   <button class="nav-btn" data-tab="creativity">Creativity</button>
   <button class="nav-btn" data-tab="stats">Stats</button>
-  <button class="nav-btn" data-tab="apocalypse">Apocalypse</button>
   <button class="nav-btn" data-tab="options">Options</button>
 </div>
 <div id="tab-content">
@@ -369,7 +324,6 @@
         <button class="upgrade-btn" id="agriculture-upgrade">Develop Agriculture (Cost: 250 Life)</button>
         <button class="upgrade-btn" id="conservation-upgrade">Wildlife Conservation (Cost: 350 Life)</button>
         <button class="upgrade-btn" id="critical-upgrade">Critical Chance (Cost: 150 Life)</button>
-        <button class="apocalypse-btn" id="apocalypse-trigger">Trigger Apocalypse (Cost: 1M Life)</button>
       </div>
     </div>
   </div>
@@ -414,13 +368,6 @@
           <span id="crit-hits-stat">0</span>
         </div>
       </div>
-    </div>
-  </div>
-  <div id="apocalypse-tab" class="tab-pane">
-    <div id="apocalypse-container">
-      <h2>Apocalypse</h2>
-      <p>Trigger apocalyptic events to challenge your progress!</p>
-      <button id="apocalypse-trigger">Trigger Apocalypse (Cost: 1M Life)</button>
     </div>
   </div>
   <div id="options-tab" class="tab-pane">
@@ -561,10 +508,7 @@
   let lastActiveTime = Date.now();
   let offlineProgressNotification = null;
   let isFastNotesEnabled = true;
-  let isVignetteEnabled = false;let isInitialized = false;
-  let originalLPS = 0;
-  let asteroids = [];
-  let isApocalypseActive = false;
+  let isVignetteEnabled = false;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
