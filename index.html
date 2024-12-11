@@ -289,49 +289,6 @@
       50% { transform: scale(1.05); }
       100% { transform: scale(1); }
     }
-    .apocalypse-active {
-    animation: earthShake 0.5s infinite;
-  }
-
-  @keyframes earthShake {
-    0%, 100% { transform: translate(0, 0) rotate(0); }
-    25% { transform: translate(-5px, -5px) rotate(-1deg); }
-    75% { transform: translate(5px, 5px) rotate(1deg); }
-  }
-
-  .explosion {
-    position: absolute;
-    width: 100px;
-    height: 100px;
-    pointer-events: none;
-    animation: explode 1s forwards;
-  }
-
-  @keyframes explode {
-    0% { transform: scale(0); opacity: 1; }
-    100% { transform: scale(4); opacity: 0; }
-  }
-
-  .apocalypse-btn {
-    background: linear-gradient(45deg, #ff4444, #cc0000);
-    color: white;
-    border: none;
-    padding: 15px 30px;
-    border-radius: 8px;
-    font-weight: bold;
-    margin: 10px;
-    cursor: pointer;
-    transition: all 0.3s;
-  }
-
-  .apocalypse-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
-  }
-
-  .apocalypse-active .apocalypse-btn {
-    background: linear-gradient(45deg, #44ff44, #00cc00);
-  }
   </style>
 </head>
 <body>
