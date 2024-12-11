@@ -1,9 +1,3 @@
-let isInitialized = false;
-let originalLPS = 0;
-let asteroids = [];
-let lifePerSecond = 0;
-let life = 0;
-let isApocalypseActive = false;
 
 function toggleApocalypse() {
   const apocalypseCost = 1000000;
