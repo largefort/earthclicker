@@ -7,7 +7,6 @@
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4695170235902689" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-  <script src="fullscreensize.js"></script>
   <style>
     body, html {
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -516,19 +515,12 @@
   camera.position.z = 5;
 
   function formatNumber(num) {
-  const shortNotation = document.getElementById('toggle-short-notation').textContent === 'Short Numbers: On';
-  
-  if (!shortNotation || num < 1000) {
-    // Display fixed decimals for smaller numbers
-    return num.toFixed(2); // Change to desired decimal places
+    const shortNotation = document.getElementById('toggle-short-notation').textContent === 'Short Numbers: On';
+    if (!shortNotation || num < 1000) return num.toFixed(0);
+    const suffixes = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc', 'Ud', 'Dd', 'Td', 'Qad', 'Qid', 'Sxd', 'Spd', 'Ocd', 'Nod', 'Vg'];
+    const order = Math.floor(Math.log10(num) / 3);
+    return (num / Math.pow(10, order * 3)).toFixed(1) + suffixes[order];
   }
-  
-  const suffixes = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc', 'Ud', 'Dd', 'Td', 'Qad', 'Qid', 'Sxd', 'Spd', 'Ocd', 'Nod', 'Vg'];
-  const order = Math.floor(Math.log10(num) / 3);
-  
-  return (num / Math.pow(10, order * 3)).toFixed(2) + suffixes[order]; // Fixed decimals for short notation
-}
-
 
   function calculateOfflineProgress(lastActiveTime) {
     const currentTime = Date.now();
@@ -536,20 +528,53 @@
 
     if (timeDiff > 60) {
       const offlineLife = lifePerSecond * timeDiff;
+
+      const humanProduction = Math.floor((humans * timeDiff) / 100);
+      const animalProduction = Math.floor((animals * timeDiff) / 100);
+
       life += offlineLife;
-      return { lifeGained: offlineLife, timePassed: timeDiff };
+      totalLifeProduced += offlineLife;
+      humansCreated += humanProduction;
+      animalsCreated += animalProduction;
+
+      const offlineSeconds = Math.floor(timeDiff);
+      gameSeconds += offlineSeconds % 86400;
+      const additionalDays = Math.floor(offlineSeconds / 86400);
+      gameDays += additionalDays % 365;
+      gameYears += Math.floor(additionalDays / 365);
+
+      while (gameSeconds >= 86400) {
+        gameSeconds -= 86400;
+        gameDays++;
+      }
+      while (gameDays >= 365) {
+        gameDays -= 365;
+        gameYears++;
+      }
+
+      updateStats();
+
+      return {
+        lifeGained: offlineLife,
+        timePassed: timeDiff,
+        humansGained: humanProduction,
+        animalsGained: animalProduction
+      };
     }
 
     return null;
   }
 
-  function showOfflineProgressNotification(lifeGained, timePassed) {
+  function showOfflineProgressNotification(lifeGained, timePassed, humansGained, animalsGained) {
     const notification = document.createElement('div');
     notification.id = 'offline-progress-notification';
     notification.innerHTML = `
       <p>Welcome back!</p>
       <p>You were away for ${formatTime(timePassed)}</p>
-      <p>You gained ${formatNumber(lifeGained)} life while offline</p>
+      <p>You gained:</p>
+      <p>${formatNumber(lifeGained)} Life</p>
+      ${humansGained > 0 ? `<p>${formatNumber(humansGained)} Humans</p>` : ''}
+      ${animalsGained > 0 ? `<p>${formatNumber(animalsGained)} Animals</p>` : ''}
     `;
     document.body.appendChild(notification);
 
@@ -559,18 +584,6 @@
         notification.remove();
       }, 1000);
     }, isFastNotesEnabled ? 2000 : 4000);
-  }
-
-  function formatTime(seconds) {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) {
-      return `${hours} hours and ${minutes} minutes`;
-    } else if (minutes > 0) {
-      return `${minutes} minutes`;
-    } else {
-      return `${Math.floor(seconds)} seconds`;
-    }
   }
 
   function loadGame() {
@@ -946,137 +959,128 @@
 
   function upgradePlanet() {
     if (life >= planetUpgradeCost) {
-        life -= planetUpgradeCost;
-        planetsProduced++;
-        totalLifeProduced += lifePerClick;
-        // Reset LPS for this upgrade, then add specific rate
-        lifePerSecond -= 0.1; 
-        lifePerSecond += 0.1; 
-        planetUpgradeCost = Math.floor(planetUpgradeCost * 1.5);
-        updateUpgradeButtonText('planet-upgrade', 'Upgrade Planet', planetUpgradeCost);
-        updateCounters();
-        updateStats();
+      life -= planetUpgradeCost;
+      planetsProduced++;
+      totalLifeProduced += lifePerClick;
+      lifePerSecond += 0.1;
+      planetUpgradeCost = Math.floor(planetUpgradeCost * 1.5);
+      updateUpgradeButtonText('planet-upgrade', 'Upgrade Planet', planetUpgradeCost);
+      updateCounters();
+      updateStats();
     }
-}
+  }
 
-function createHumans() {
+  function createHumans() {
     if (life >= humanUpgradeCost) {
-        life -= humanUpgradeCost;
-        humans += 10;
-        humansCreated += 10;
-        // Reset LPS for this upgrade, then add specific rate
-        lifePerSecond -= 0.1;
-        lifePerSecond += 0.1;
-        humanUpgradeCost = Math.floor(humanUpgradeCost * 1.5);
-        updateUpgradeButtonText('human-upgrade', 'Create Humans', humanUpgradeCost);
-        updateCounters();
-        updateStats();
+      life -= humanUpgradeCost;
+      humans += 10;
+      humansCreated += 10;
+      lifePerSecond += 1;
+      humanUpgradeCost = Math.floor(humanUpgradeCost * 1.5);
+      updateUpgradeButtonText('human-upgrade', 'Create Humans', humanUpgradeCost);
+      updateCounters();
+      updateStats();
     }
-}
+  }
 
-function createAnimals() {
+  function createAnimals() {
     if (life >= animalUpgradeCost) {
-        life -= animalUpgradeCost;
-        animals += 5;
-        animalsCreated += 5;
-        // Reset LPS for this upgrade, then add specific rate
-        lifePerSecond -= 0.2;
-        lifePerSecond += 0.2;
-        animalUpgradeCost = Math.floor(animalUpgradeCost * 1.3);
-        updateUpgradeButtonText('animal-upgrade', 'Create Animals', animalUpgradeCost);
-        updateCounters();
-        updateStats();
+      life -= animalUpgradeCost;
+      animals += 5;
+      animalsCreated += 5;
+      lifePerSecond += 0.5;
+      animalUpgradeCost = Math.floor(animalUpgradeCost * 1.3);
+      updateUpgradeButtonText('animal-upgrade', 'Create Animals', animalUpgradeCost);
+      updateCounters();
+      updateStats();
     }
-}
+  }
 
-function upgradeClick() {
+  function upgradeClick() {
     if (life >= clickUpgradeCost) {
-        life -= clickUpgradeCost;
-        lifePerClick += 1; // Increase life per click
-        // Reset LPS for this upgrade if it contributes, then add specific rate
-        lifePerSecond -= 0; // Adjust if needed, but typically clicks don't add to LPS
-        lifePerSecond += 0; // Add LPS rate (if clicks are meant to contribute, adjust here)
-        clickUpgradeCost = Math.floor(clickUpgradeCost * 1.5);
-        updateUpgradeButtonText('click-upgrade', 'Upgrade Click', clickUpgradeCost);
-        updateCounters();
+      life -= clickUpgradeCost;
+      lifePerClick += 1;
+      clickUpgradeCost = Math.floor(clickUpgradeCost * 1.5);
+      updateUpgradeButtonText('click-upgrade', 'Upgrade Click', clickUpgradeCost);
+      updateCounters();
     }
-}
+  }
 
-function upgradeEducation() {
+  function upgradeEducation() {
     if (life >= educationUpgradeCost) {
-        life -= educationUpgradeCost;
-        educationLevel++;
-        // Reset LPS for this upgrade, then add specific rate
-        lifePerSecond -= 0.4;
-        lifePerSecond += 0.4;
-        educationUpgradeCost = Math.floor(educationUpgradeCost * 1.5);
-        updateUpgradeButtonText('education-upgrade', 'Education System', educationUpgradeCost);
-        updateCounters();
+      life -= educationUpgradeCost;
+      educationLevel++;
+      lifePerSecond += 2;
+      educationUpgradeCost = Math.floor(educationUpgradeCost * 1.5);
+      updateUpgradeButtonText('education-upgrade', 'Education System', educationUpgradeCost);
+      updateCounters();
     }
-}
+  }
 
-function upgradeTechnology() {
+  function upgradeTechnology() {
     if (life >= technologyUpgradeCost) {
-        life -= technologyUpgradeCost;
-        technologyLevel++;
-        // Reset LPS for this upgrade, then add specific rate
-        lifePerSecond -= 0.5;
-        lifePerSecond += 0.5;
-        technologyUpgradeCost = Math.floor(technologyUpgradeCost * 1.6);
-        updateUpgradeButtonText('technology-upgrade', 'Technological Advancement', technologyUpgradeCost);
-        updateCounters();
+      life -= technologyUpgradeCost;
+      technologyLevel++;
+      lifePerSecond += 5;
+      technologyUpgradeCost = Math.floor(technologyUpgradeCost * 1.6);
+      updateUpgradeButtonText('technology-upgrade', 'Technological Advancement', technologyUpgradeCost);
+      updateCounters();
     }
-}
+  }
 
-function upgradeEcosystem() {
+  function upgradeEcosystem() {
     if (life >= ecosystemUpgradeCost) {
-        life -= ecosystemUpgradeCost;
-        ecosystemLevel++;
-        // Reset LPS for this upgrade, then add specific rate
-        lifePerSecond -= 0.6;
-        lifePerSecond += 0.6;
-        ecosystemUpgradeCost = Math.floor(ecosystemUpgradeCost * 1.4);
-        updateUpgradeButtonText('ecosystem-upgrade', 'Enhance Ecosystem', ecosystemUpgradeCost);
-        updateCounters();
+      life -= ecosystemUpgradeCost;
+      ecosystemLevel++;
+      lifePerSecond += 1.5;
+      ecosystemUpgradeCost = Math.floor(ecosystemUpgradeCost * 1.4);
+      updateUpgradeButtonText('ecosystem-upgrade', 'Enhance Ecosystem', ecosystemUpgradeCost);
+      updateCounters();
     }
-}
+  }
 
-function upgradeBiodiversity() {
+  function upgradeBiodiversity() {
     if (life >= biodiversityUpgradeCost) {
-        life -= biodiversityUpgradeCost;
-        biodiversityLevel++;
-        // Reset LPS for this upgrade, then add specific rate
-        lifePerSecond -= 0.7;
-        lifePerSecond += 0.7;
-        biodiversityUpgradeCost = Math.floor(biodiversityUpgradeCost * 1.5);
-        updateUpgradeButtonText('biodiversity-upgrade', 'Increase Biodiversity', biodiversityUpgradeCost);
-        updateCounters();
+      life -= biodiversityUpgradeCost;
+      biodiversityLevel++;
+      lifePerSecond += 3;
+      biodiversityUpgradeCost = Math.floor(biodiversityUpgradeCost * 1.5);
+      updateUpgradeButtonText('biodiversity-upgrade', 'Increase Biodiversity', biodiversityUpgradeCost);
+      updateCounters();
     }
-}
+  }
 
-function upgradeAgriculture() {
+  function upgradeAgriculture() {
     if (life >= agricultureUpgradeCost) {
-        life -= agricultureUpgradeCost;
-        // Reset LPS for this upgrade, then add specific rate
-        lifePerSecond -= 0.8;
-        lifePerSecond += 0.8;
-        agricultureUpgradeCost = Math.floor(agricultureUpgradeCost * 1.5);
-        updateUpgradeButtonText('agriculture-upgrade', 'Develop Agriculture', agricultureUpgradeCost);
-        updateCounters();
+      life -= agricultureUpgradeCost;
+      lifePerSecond += 2;
+      agricultureUpgradeCost = Math.floor(agricultureUpgradeCost * 1.5);
+      updateUpgradeButtonText('agriculture-upgrade', 'Develop Agriculture', agricultureUpgradeCost);
+      updateCounters();
     }
-}
+  }
 
-function upgradeConservation() {
+  function upgradeConservation() {
     if (life >= conservationUpgradeCost) {
-        life -= conservationUpgradeCost;
-        // Reset LPS for this upgrade, then add specific rate
-        lifePerSecond -= 0.9;
-        lifePerSecond += 0.9;
-        conservationUpgradeCost = Math.floor(conservationUpgradeCost * 1.5);
-        updateUpgradeButtonText('conservation-upgrade', 'Wildlife Conservation', conservationUpgradeCost);
-        updateCounters();
+      life -= conservationUpgradeCost;
+      lifePerSecond += 3;
+      conservationUpgradeCost = Math.floor(conservationUpgradeCost * 1.5);
+      updateUpgradeButtonText('conservation-upgrade', 'Wildlife Conservation', conservationUpgradeCost);
+      updateCounters();
     }
-}
+  }
+
+  function upgradeCritical() {
+    if (life >= criticalUpgradeCost) {
+      life -= criticalUpgradeCost;
+      criticalChance += 0.01; // Increase critical chance by 1%
+      criticalDamage += 0.1; // Increase critical damage multiplier by 0.1
+      criticalUpgradeCost = Math.floor(criticalUpgradeCost * 1.4);
+      updateUpgradeButtonText('critical-upgrade', 'Critical Chance', criticalUpgradeCost);
+      updateCounters();
+      updateStats();
+    }
+  }
 
   document.getElementById('planet-upgrade').addEventListener('click', upgradePlanet);
   document.getElementById('human-upgrade').addEventListener('click', createHumans);
