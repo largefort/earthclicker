@@ -395,15 +395,15 @@
     <div id="sidebar">
       <h2>Game Options</h2>
       <div id="game-controls">
-        <button class="game-btn" id="save-game">Save Game</button>
+        <button class="game-btn" id="save-game" style="display: none;">Save Game</button>
         <button class="game-btn" id="reset-game">Reset Game</button>
-        <button class="game-btn" id="toggle-sound">Sound Effects: On</button>
-        <button class="game-btn" id="toggle-music">Music: On</button>
-        <button class="game-btn" id="toggle-short-notation">Short Numbers: On</button>
-        <button class="game-btn" id="toggle-sharpness">Galaxy Sharpness: Off</button>
-        <button class="game-btn" id="toggle-closeup">Planet Close-up: Off</button>
-        <button class="game-btn" id="toggle-fast-notes">Fast Notes: On</button>
-        <button class="game-btn" id="toggle-vignette">Vignette Effect: Off</button>
+        <button class="game-btn" id="toggle-sound" style="display: none;">Sound Effects: On</button>
+        <button class="game-btn" id="toggle-music" style="display: none;">Music: On</button>
+        <button class="game-btn" id="toggle-short-notation" style="display: none;">Short Numbers: On</button>
+        <button class="game-btn" id="toggle-sharpness" style="display: none;">Galaxy Sharpness: Off</button>
+        <button class="game-btn" id="toggle-closeup" style="display: none;">Planet Close-up: On</button>
+        <button class="game-btn" id="toggle-fast-notes" style="display: none;">Fast Notes: On</button>
+        <button class="game-btn" id="toggle-vignette" style="display: none;">Vignette Effect: Off</button>
       </div>
       <div id="game-info">
         <p id="zoom-info">Zoom: Z (in) / O (out)</p>
@@ -457,12 +457,12 @@ let gameDays = 0;
 let gameYears = 0;
 let isSoundEnabled = true;
 let isMusicEnabled = true;
-let isSharpnessEnabled = false;
+let isSharpnessEnabled = true;
 let rotationSpeed = 0.001;
 let lastActiveTime = Date.now();
 let offlineProgressNotification = null;
 let isFastNotesEnabled = true;
-let isVignetteEnabled = false;
+let isVignetteEnabled = true;
 
 let audioContext = null;
 let clickBuffer = null;
@@ -623,8 +623,8 @@ function loadGame() {
       gameYears = gameState.gameYears || 0;
       isSoundEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
       isMusicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
-      isSharpnessEnabled = gameState.isSharpnessEnabled || false;
-      isCloseupEnabled = gameState.isCloseupEnabled || false;
+      isSharpnessEnabled = gameState.isSharpnessEnabled || true;
+      isCloseupEnabled = gameState.isCloseupEnabled || true;
 
       document.getElementById('toggle-vignette').textContent = `Vignette Effect: ${isVignetteEnabled ? 'On' : 'Off'}`;
       document.getElementById('vignette-overlay').classList.toggle('active', isVignetteEnabled);
