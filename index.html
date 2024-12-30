@@ -398,7 +398,7 @@
       <button class="game-btn" id="toggle-fast-notes" style="display: none;">Fast Notes: On</button>
           <button class="game-btn" id="export-progress">Export Progress</button>
           <button class="game-btn" id="import-progress">Import Progress</button>
-          <button class="game-btn" id="exit-game">Exit Game</button>
+          <button class="game-btn" id="close-game">Exit Game</button>
         </div>
         <div id="game-info">
           <p id="zoom-info">Zoom: Z (in) / O (out)</p>
@@ -1086,14 +1086,20 @@ function initMobileTabs() {
     }
   }
 }
-document.getElementById('exit-game').addEventListener('click', function () {
-  if (confirm('Are you sure you want to exit the game?')) {
-    if (window.cordova) {
-      saveGame();
-      navigator.app.exitApp();
-    }
+function closeGame() {
+  window.close();
+  if (window.electron) {
+    window.electron.close();
   }
-});
+  if (window.cordova) {
+    navigator.app.exitApp();
+  }
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    window.close();
+  }
+  window.location.href = 'about:blank';
+}
+document.getElementById('exit-game').addEventListener('click', closeGame);
 function showModal(modalId) {
   document.getElementById(modalId).style.display = 'block';
 }
