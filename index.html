@@ -600,22 +600,38 @@ function loadGame() {
       document.getElementById('toggle-sharpness').textContent = `Galaxy Sharpness: ${isSharpnessEnabled ? 'On' : 'Off'}`;
       document.getElementById('toggle-closeup').textContent = `Planet Close-up: ${isCloseupEnabled ? 'On' : 'Off'}`;
       document.getElementById('toggle-fast-notes').textContent = `Fast Notes: ${isFastNotesEnabled ? 'On' : 'Off'}`;
-      const lastActiveTime = parseInt(localStorage.getItem('lastActiveTime') || Date.now().toString(), 10);
-      const offlineProgress = calculateOfflineProgress(lastActiveTime);
-      if (offlineProgress) {
-        showOfflineProgressNotification(offlineProgress.lifeGained, offlineProgress.timePassed);
+      const lastActiveTime = parseInt(localStorage.getItem('lastSaveTime') || Date.now().toString(), 10);
+      const currentTime = Date.now();
+      const timeDiff = (currentTime - lastActiveTime) / 1000; // Convert to seconds
+
+      // Apply saved state
+      Object.assign(window, gameState);
+      
+      // Calculate offline progress if more than 1 minute has passed
+      if (timeDiff > 60) {
+        const offlineLife = lifePerSecond * timeDiff;
+        life += offlineLife;
+        totalLifeProduced += offlineLife;
+        
+        // Show offline progress notification
+        showOfflineProgressNotification(offlineLife, timeDiff);
       }
+
+      // Update UI
       updateUISettings();
       updateCounters();
       updateTimeCounter();
       updateStats();
       updateAllUpgradeButtonTexts();
-    } else {
-      console.log("No saved game found. Starting a new game.");
+      
+      console.log('Game loaded successfully');
+      return true;
     }
   } catch (error) {
     console.error("Failed to load game state:", error);
+    return false;
   }
+  return false;
 }
 function saveGame() {
   if (!isLocalStorageAvailable()) {
@@ -658,21 +674,30 @@ function saveGame() {
       isCloseupEnabled,
       isFastNotesEnabled
     };
+    
+    // Save with timestamp for offline progress calculation
     localStorage.setItem('planetIdleGame', JSON.stringify(gameState));
-    localStorage.setItem('lastActiveTime', Date.now().toString());
+    localStorage.setItem('lastSaveTime', Date.now().toString());
+    return true;
   } catch (error) {
     console.error("Failed to save game state:", error);
+    return false;
   }
 }
 function autosave() {
-  saveGame();
-  console.log('Game autosaved');
+  if (isLocalStorageAvailable()) {
+    saveGame();
+    console.log('Game autosaved successfully');
+  }
 }
 function autoload() {
-  loadGame();
-  console.log('Game autoloaded');
+  if (isLocalStorageAvailable()) {
+    loadGame();
+    console.log('Game autoloaded successfully');
+  }
 }
 document.addEventListener('DOMContentLoaded', () => {
+  autoload();
   document.getElementById('copy-export').addEventListener('click', () => {
     const exportText = document.getElementById('export-text');
     exportText.select();
@@ -698,8 +723,17 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 setInterval(() => {
   autosave();
-  autoload();
-}, 30000);
+}, 15000);
+
+// Add event listeners for autosave on tab/window changes
+window.addEventListener('blur', autosave);
+window.addEventListener('beforeunload', autosave);
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    autosave();
+  }
+});
+
 document.getElementById('toggle-music').addEventListener('click', () => {
   isMusicEnabled = !isMusicEnabled;
   document.getElementById('toggle-music').textContent = `Music: ${isMusicEnabled ? 'On' : 'Off'}`;
@@ -1109,7 +1143,7 @@ function closeGame() {
     window.location.href = 'about:blank';
   }
 }
-document.getElementById('close-game').addEventListener('click', () => {
+document.getElementById('exit-game').addEventListener('click', () => {
   showModal('exit-modal');
 });
 document.getElementById('confirm-exit').addEventListener('click', closeGame);
@@ -1223,6 +1257,7 @@ function processImport() {
 }
 document.getElementById('export-progress').addEventListener('click', exportProgress);
 document.getElementById('import-progress').addEventListener('click', importProgress);
-document.getElementById('import-button').addEventListener('click', processImport);</script>
+document.getElementById('import-button').addEventListener('click', processImport);
+</script>
 </body>
 </html>
