@@ -6,7 +6,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
   <style>
-     body, html {
+   body, html {
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
       color: #e0e0e0;
       margin: 0;
@@ -314,7 +314,7 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
-</style>
+  </style>
 </head>
 <body>
   <div id="mobile-nav">
@@ -384,17 +384,17 @@
       </div>
     </div>
     <div id="options-tab" class="tab-pane">
-      <div id="sidebar">
-        <h2>Game Options</h2>
-        <div id="game-controls">
-          <button class="game-btn" id="save-game">Save Game</button>
-          <button class="game-btn" id="reset-game">Reset Game</button>
-          <button class="game-btn" id="toggle-sound">Sound Effects: On</button>
-          <button class="game-btn" id="toggle-music">Music: On</button>
-          <button class="game-btn" id="toggle-short-notation">Short Numbers: On</button>
-          <button class="game-btn" id="toggle-sharpness">Galaxy Sharpness: Off</button>
-          <button class="game-btn" id="toggle-closeup">Planet Close-up: Off</button>
-          <button class="game-btn" id="toggle-fast-notes">Fast Notes: On</button>
+  <div id="sidebar">
+    <h2>Game Options</h2>
+    <div id="game-controls">
+      <button class="game-btn" id="save-game" style="display: none;">Save Game</button>
+      <button class="game-btn" id="reset-game">Reset Game</button>
+      <button class="game-btn" id="toggle-sound" style="display: none;">Sound Effects: On</button>
+      <button class="game-btn" id="toggle-music" style="display: none;">Music: On</button>
+      <button class="game-btn" id="toggle-short-notation" style="display: none;">Short Numbers: On</button>
+      <button class="game-btn" id="toggle-sharpness" style="display: none;">Galaxy Sharpness: Off</button>
+      <button class="game-btn" id="toggle-closeup" style="display: none;">Planet Close-up: Off</button>
+      <button class="game-btn" id="toggle-fast-notes" style="display: none;">Fast Notes: On</button>
           <button class="game-btn" id="export-progress">Export Progress</button>
           <button class="game-btn" id="import-progress">Import Progress</button>
           <button class="game-btn" id="exit-game">Exit Game</button>
@@ -475,7 +475,7 @@ let ecosystemUpgradeCost = 150;
 let biodiversityUpgradeCost = 300;
 let agricultureUpgradeCost = 250;
 let conservationUpgradeCost = 350;
-let isCloseupEnabled = false;
+let isCloseupEnabled = true;
 let moon;
 let moonOrbit;
 const moonRotationSpeed = 0.001;
@@ -486,7 +486,7 @@ let gameDays = 0;
 let gameYears = 0;
 let isSoundEnabled = true;
 let isMusicEnabled = true;
-let isSharpnessEnabled = false;
+let isSharpnessEnabled = true;
 let rotationSpeed = 0.001;
 let lastActiveTime = Date.now();
 let offlineProgressNotification = null;
@@ -579,9 +579,9 @@ function loadGame() {
       gameYears = gameState.gameYears || 0;
       isSoundEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
       isMusicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
-      isSharpnessEnabled = gameState.isSharpnessEnabled || false;
+      isSharpnessEnabled = gameState.isSharpnessEnabled || true;
       isFastNotesEnabled = gameState.isFastNotesEnabled !== undefined ? gameState.isFastNotesEnabled : true;
-      isCloseupEnabled = gameState.isCloseupEnabled || false;
+      isCloseupEnabled = gameState.isCloseupEnabled || true;
       document.getElementById('toggle-sound').textContent = `Sound Effects: ${isSoundEnabled ? 'On' : 'Off'}`;
       document.getElementById('toggle-music').textContent = `Music: ${isMusicEnabled ? 'On' : 'Off'}`;
       document.getElementById('toggle-short-notation').textContent = `Short Numbers: ${gameState.isShortNotationOn ? 'On' : 'Off'}`;
@@ -683,7 +683,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
   initMobileTabs();
-  exportProgress();
 });
 setInterval(() => {
   autosave();
