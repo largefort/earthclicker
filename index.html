@@ -384,7 +384,7 @@
         </div>
       </div>
     </div>
-    <div id="options-tab" class="tab-pane">
+  <div id="options-tab" class="tab-pane">
   <div id="sidebar">
     <h2>Game Options</h2>
     <div id="game-controls">
@@ -424,6 +424,17 @@
       <p>Paste your saved progress code below:</p>
       <textarea id="import-text" placeholder="Paste your progress code here"></textarea>
       <button id="import-button" class="modal-button">Import</button>
+    </div>
+  </div>
+  <div id="exit-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&#xd7;</span>
+      <h2>Exit Game</h2>
+      <p>Are you sure you want to exit the game?</p>
+      <div style="display: flex; justify-content: center; gap: 10px;">
+        <button class="modal-button" id="confirm-exit">Yes, Exit</button>
+        <button class="modal-button" id="cancel-exit">Cancel</button>
+      </div>
     </div>
   </div>
   <script>let audioContext;
@@ -1087,19 +1098,24 @@ function initMobileTabs() {
   }
 }
 function closeGame() {
-  window.close();
+  hideModal('exit-modal');
   if (window.electron) {
     window.electron.close();
-  }
-  if (window.cordova) {
+  } else if (navigator.app && navigator.app.exitApp) {
     navigator.app.exitApp();
-  }
-  if (window.matchMedia('(display-mode: standalone)').matches) {
+  } else if (window.close) {
     window.close();
+  } else {
+    window.location.href = 'about:blank';
   }
-  window.location.href = 'about:blank';
 }
-document.getElementById('close-game').addEventListener('click', closeGame);
+document.getElementById('close-game').addEventListener('click', () => {
+  showModal('exit-modal');
+});
+document.getElementById('confirm-exit').addEventListener('click', closeGame);
+document.getElementById('cancel-exit').addEventListener('click', () => {
+  hideModal('exit-modal');
+});
 function showModal(modalId) {
   document.getElementById(modalId).style.display = 'block';
 }
