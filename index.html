@@ -1,4 +1,3 @@
-<html><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Advanced Three.js Planet Idle Game with Zoom and Animals</title>
@@ -71,6 +70,7 @@ let blessingMultiplier = 1;
 const starMaterialUniforms = {
   opacity: { value: 1.0 }
 };
+let targetZoom = 5;
 </script>
 <style>
   /* Enhance base styles */
@@ -1181,7 +1181,7 @@ const starMaterialUniforms = {
   }
 
   function initializeGame() {
-    var targetZoom = camera.position.z;
+    targetZoom = camera.position.z;
     loadGame();
     initMobileTabs();
     updateStats();
@@ -1207,7 +1207,16 @@ const starMaterialUniforms = {
       }
       document.getElementById('dlc-tab').style.display = 'none';
     }
+    document.getElementById('planet-upgrade').addEventListener('click', handlePlanetUpgrade);
+    document.getElementById('human-upgrade').addEventListener('click', handleHumanUpgrade);
+    document.getElementById('animal-upgrade').addEventListener('click', handleAnimalUpgrade);
+    document.getElementById('click-upgrade').addEventListener('click', handleClickUpgrade);
+    document.getElementById('education-upgrade').addEventListener('click', handleEducationUpgrade);
+    document.getElementById('technology-upgrade').addEventListener('click', handleTechnologyUpgrade); 
+    document.getElementById('ecosystem-upgrade').addEventListener('click', handleEcosystemUpgrade);
+    document.getElementById('biodiversity-upgrade').addEventListener('click', handleBiodiversityUpgrade);
   }
+
   document.addEventListener('DOMContentLoaded', initializeGame);
 
   function isLocalStorageAvailable() {
@@ -1668,10 +1677,18 @@ const starMaterialUniforms = {
     const humansCounter = document.getElementById('humans-counter');
     const animalsCounter = document.getElementById('animals-counter');
     const lpsCounter = document.getElementById('lps-counter');
+    
     if (lifeCounter) lifeCounter.textContent = `Life: ${formatNumber(life)}`;
     if (humansCounter) humansCounter.textContent = `Humans: ${formatNumber(humans)}`;
     if (animalsCounter) animalsCounter.textContent = `Animals: ${formatNumber(animals)}`;
     if (lpsCounter) lpsCounter.textContent = `Life per second: ${formatNumber(lifePerSecond)}`;
+
+    // Update button states based on affordability
+    document.querySelectorAll('.upgrade-btn').forEach(btn => {
+      const cost = parseInt(btn.textContent.match(/Cost: ([\d,]+)/)[1].replace(/,/g, ''));
+      btn.disabled = life < cost;
+      btn.style.opacity = life < cost ? '0.6' : '1';
+    });
   }
   document.getElementById('game-container').addEventListener('click', handleClick, true);
   document.getElementById('game-container').addEventListener('touchstart', handleClick, true);
@@ -1767,6 +1784,7 @@ const starMaterialUniforms = {
         text-shadow: 0 0 10px gold;
         animation: fadeOut 2s forwards;
       `;
+  
       document.body.appendChild(notification);
       setTimeout(() => notification.remove(), 2000);
     }
@@ -1854,7 +1872,7 @@ const starMaterialUniforms = {
         targetZoom = Math.max(minZoom, targetZoom - zoomSpeed);
         break;
       case 'o':
-        targetZoom = Math.min(maxZoom, targetZoom + zoomSpeed);
+        targetZoom = Math.min(maxZoom, targetZoom + zoomSpeed); 
         break;
     }
   });
@@ -1864,159 +1882,6 @@ const starMaterialUniforms = {
       window.close();
     }
   }
-
-  function initSteamAPI() {
-    if (window.require) {
-      if (!greenworks.init()) {
-        console.error('Steam API initialization failed');
-        return;
-      }
-      
-      if (greenworks.isDLCInstalled(DLC_APP_ID)) {
-        hasDLC = true;
-        const dlcTab = document.querySelector('[data-tab="dlc"]');
-        if (dlcTab) {
-          dlcTab.style.display = 'block';
-        }
-        document.getElementById('dlc-tab').style.display = 'block';
-      }
-    } else {
-      console.log('Steam API not available - running in browser mode');
-    }
-  }
-
-  function loadGameState(gameState) {
-    life = gameState.life || 0;
-    humans = gameState.humans || 0;
-    animals = gameState.animals || 0;
-    planetsProduced = gameState.planetsProduced || 0;
-    lifePerSecond = gameState.lifePerSecond || 0;
-    lifePerClick = gameState.lifePerClick || 1;
-    planetUpgradeCost = gameState.planetUpgradeCost || 10;
-    humanUpgradeCost = gameState.humanUpgradeCost || 100;
-    animalUpgradeCost = gameState.animalUpgradeCost || 50;
-    clickUpgradeCost = gameState.clickUpgradeCost || 50;
-    educationLevel = gameState.educationLevel || 0;
-    technologyLevel = gameState.technologyLevel || 0;
-    ecosystemLevel = gameState.ecosystemLevel || 0;
-    biodiversityLevel = gameState.biodiversityLevel || 0;
-    educationUpgradeCost = gameState.educationUpgradeCost || 200;
-    technologyUpgradeCost = gameState.technologyUpgradeCost || 500;
-    ecosystemUpgradeCost = gameState.ecosystemUpgradeCost || 150;
-    biodiversityUpgradeCost = gameState.biodiversityUpgradeCost || 300;
-    agricultureUpgradeCost = gameState.agricultureUpgradeCost || 250;
-    conservationUpgradeCost = gameState.conservationUpgradeCost || 350;
-    totalLifeProduced = gameState.totalLifeProduced || 0;
-    totalClicks = gameState.totalClicks || 0;
-    humansCreated = gameState.humansCreated || 0;
-    animalsCreated = gameState.animalsCreated || 0;
-    gameSeconds = gameState.gameSeconds || 0;
-    gameDays = gameState.gameDays || 0;
-    gameYears = gameState.gameYears || 0;
-    audioEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
-    musicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
-    graphicsSettings = {
-      mode: gameState.graphicsSettings?.mode || 'fidelity',
-      resolutionScale: gameState.graphicsSettings?.resolutionScale || 100,
-      shadowQuality: gameState.graphicsSettings?.shadowQuality || 'high',
-      textureQuality: gameState.graphicsSettings?.textureQuality || 'high', 
-      antiAliasing: gameState.graphicsSettings?.antiAliasing || 'fxaa',
-      postProcessing: gameState.graphicsSettings?.postProcessing || 'high',
-      gpuOptimization: gameState.graphicsSettings?.gpuOptimization || 'auto',
-      starsQuality: gameState.graphicsSettings?.starsQuality || 'high',
-      threeJsSettings: {
-        pixelRatio: window.devicePixelRatio,
-        toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 1.0,
-        outputEncoding: THREE.sRGBEncoding
-      },
-      starsVerticesCount: {
-        ultra: 50000,
-        high: 25000,
-        medium: 12500,
-        low: 6000
-      },
-      starsOpacity: {
-        ultra: 1.0,
-        high: 0.8,
-        medium: 0.6,
-        low: 0.4
-      }
-    };
-
-    if (gameState.divineEnergy !== undefined) {
-      divineEnergy = gameState.divineEnergy;
-    }
-    if (gameState.divineUpgrades) {
-      divineUpgrades = gameState.divineUpgrades;
-    } else {
-      divineUpgrades = {
-        createLife: 0,
-        controlTime: 0,
-        shapeReality: 0,
-        cosmicKnowledge: 0,
-        miracles: 0
-      };
-    }
-
-    const soundBtn = document.getElementById('toggle-sound');
-    const musicBtn = document.getElementById('toggle-music');
-    if (soundBtn) soundBtn.textContent = `Sound Effects: ${audioEnabled ? 'On' : 'Off'}`;
-    if (musicBtn) musicBtn.textContent = `Music: ${musicEnabled ? 'On' : 'Off'}`;
-    document.getElementById('gpu-optimization').value = graphicsSettings.gpuOptimization;
-    document.getElementById('stars-quality').value = graphicsSettings.starsQuality;
-
-    updateCounters();
-    updateStats();
-    updateAllUpgradeButtonTexts();
-
-    if (gameState.graphicsSettings) {
-      document.getElementById('graphics-mode').value = graphicsSettings.mode;
-      document.getElementById('resolution-scale').value = graphicsSettings.resolutionScale;
-      document.getElementById('shadow-quality').value = graphicsSettings.shadowQuality;
-      document.getElementById('texture-quality').value = graphicsSettings.textureQuality;
-      document.getElementById('anti-aliasing').value = graphicsSettings.antiAliasing;
-      document.getElementById('post-processing').value = graphicsSettings.postProcessing;
-      
-      applyGraphicsSettings();
-    }
-    enforceLockedMaterialSettings();
-    updateDivineEnergy();
-    updateDivineUpgradeButtons();
-    initializeDivineUpgrades();
-    if (hasDLC) {
-      const dlcTab = document.querySelector('[data-tab="dlc"]');
-      if (dlcTab) {
-        dlcTab.style.display = 'block';
-      }
-      document.getElementById('dlc-tab').style.display = 'block';
-    } else {
-      const dlcTab = document.querySelector('[data-tab="dlc"]');
-      if (dlcTab) {
-        dlcTab.style.display = 'none';
-      }
-      document.getElementById('dlc-tab').style.display = 'none';
-    }
-  }
-
-  function loadFromSteamCloud() {
-    greenworks.readTextFromFile('planetidlesave.json', (success, data) => {
-      if (success) {
-        const gameState = JSON.parse(data);
-        loadGameState(gameState);
-      } else {
-        console.log("No saved game found in Steam Cloud. Starting a new game.");
-        initializeDefaultValues();
-      }
-    });
-  }
-
-  document.addEventListener('click', (e) => {
-    if (e.target.tagName === 'A' && e.target.href && window.require) {
-      e.preventDefault();
-      greenworks.activateGameOverlayToWebPage(e.target.href);
-    }
-  });
 
   function initSteamAPI() {
     if (window.require) {
@@ -2244,13 +2109,14 @@ const starMaterialUniforms = {
   }
 
   function applyGraphicsSettings() {
-    const graphicsMode = document.getElementById('graphics-mode').value;
-    const resolutionScale = parseInt(document.getElementById('resolution-scale').value) / 100;
-    const shadowQuality = document.getElementById('shadow-quality').value;
-    const textureQuality = document.getElementById('texture-quality').value;
-    const antiAliasing = document.getElementById('anti-aliasing').value;
-    const postProcessing = document.getElementById('post-processing').value;
-    const gpuOptimization = document.getElementById('gpu-optimization').value;
+    // Safely get elements, use defaults if not found
+    const graphicsMode = document.getElementById('graphics-mode')?.value || 'fidelity';
+    const resolutionScale = parseInt(document.getElementById('resolution-scale')?.value || 100) / 100;
+    const shadowQuality = document.getElementById('shadow-quality')?.value || 'high';
+    const textureQuality = document.getElementById('texture-quality')?.value || 'high';
+    const antiAliasing = document.getElementById('anti-aliasing')?.value || 'fxaa';
+    const postProcessing = document.getElementById('post-processing')?.value || 'high';
+    const gpuOptimization = document.getElementById('gpu-optimization')?.value || 'auto';
 
     graphicsSettings.mode = graphicsMode;
     graphicsSettings.resolutionScale = resolutionScale * 100;
@@ -2260,11 +2126,18 @@ const starMaterialUniforms = {
     graphicsSettings.postProcessing = postProcessing;
     graphicsSettings.gpuOptimization = gpuOptimization;
 
-    RTX_SETTINGS.enabled = document.getElementById('rtx-enabled').value === 'on';
-    RTX_SETTINGS.samples = parseInt(document.getElementById('rtx-samples').value);
-    RTX_SETTINGS.bounces = parseInt(document.getElementById('rtx-bounces').value);
-    RTX_SETTINGS.denoise = document.getElementById('rtx-denoise').value === 'on';
-    RTX_SETTINGS.environmentIntensity = parseFloat(document.getElementById('rtx-env-intensity').value);
+    // Safely check for RTX elements
+    const rtxEnabled = document.getElementById('rtx-enabled')?.value === 'on';
+    const rtxSamples = parseInt(document.getElementById('rtx-samples')?.value || '1');
+    const rtxBounces = parseInt(document.getElementById('rtx-bounces')?.value || '2');
+    const rtxDenoise = document.getElementById('rtx-denoise')?.value === 'on';
+    const rtxEnvIntensity = parseFloat(document.getElementById('rtx-env-intensity')?.value || '1.0');
+
+    RTX_SETTINGS.enabled = rtxEnabled;
+    RTX_SETTINGS.samples = rtxSamples;
+    RTX_SETTINGS.bounces = rtxBounces;
+    RTX_SETTINGS.denoise = rtxDenoise;
+    RTX_SETTINGS.environmentIntensity = rtxEnvIntensity;
 
     // Apply resolution scale
     renderer.setPixelRatio(window.devicePixelRatio * resolutionScale);
@@ -2290,8 +2163,10 @@ const starMaterialUniforms = {
     }
 
     // Resolution scale value display
-    document.getElementById('resolution-scale-value').textContent = 
-      Math.round(resolutionScale * 100) + '%';
+    const resScaleValue = document.getElementById('resolution-scale-value');
+    if (resScaleValue) {
+      resScaleValue.textContent = Math.round(resolutionScale * 100) + '%';
+    }
 
     // Performance mode overrides
     if (graphicsMode === 'performance') {
@@ -2334,13 +2209,16 @@ const starMaterialUniforms = {
       gpuInfo.isNvidia = gpuInfo.vendor.toLowerCase().includes('nvidia');
       gpuInfo.isAMD = gpuInfo.vendor.toLowerCase().includes('amd');
 
-      // Auto-select optimization profile
-      if (gpuInfo.isNvidia) {
-        document.getElementById('gpu-optimization').value = 'nvidia';
-        applyGraphicsSettings();
-      } else if (gpuInfo.isAMD) {
-        document.getElementById('gpu-optimization').value = 'amd'; 
-        applyGraphicsSettings();
+      // Auto-select optimization profile if element exists
+      const gpuOptSelect = document.getElementById('gpu-optimization');
+      if (gpuOptSelect) {
+        if (gpuInfo.isNvidia) {
+          gpuOptSelect.value = 'nvidia';
+          applyGraphicsSettings();
+        } else if (gpuInfo.isAMD) {
+          gpuOptSelect.value = 'amd'; 
+          applyGraphicsSettings();
+        }
       }
     }
 
@@ -2351,64 +2229,312 @@ const starMaterialUniforms = {
     console.log('NVIDIA GPU:', gpuInfo.isNvidia);
     console.log('AMD GPU:', gpuInfo.isAMD);
   }
+  function initializeDefaultValues() {
+    life = 0;
+    humans = 0;
+    animals = 0;
+    planetsProduced = 0;
+    lifePerSecond = 0;
+    lifePerClick = 1;
+    planetUpgradeCost = 10;
+    humanUpgradeCost = 100;
+    animalUpgradeCost = 50;
+    clickUpgradeCost = 50;
+    educationLevel = 0;
+    technologyLevel = 0;
+    ecosystemLevel = 0;
+    biodiversityLevel = 0;
+    educationUpgradeCost = 200;
+    technologyUpgradeCost = 500;
+    ecosystemUpgradeCost = 150;
+    biodiversityUpgradeCost = 300;
+    agricultureUpgradeCost = 250;
+    conservationUpgradeCost = 350;
+    totalLifeProduced = 0;
+    totalClicks = 0;
+    humansCreated = 0;
+    animalsCreated = 0;
+    gameSeconds = 0;
+    gameDays = 0;
+    gameYears = 0;
+    audioEnabled = true;
+    musicEnabled = true;
+    divineEnergy = 0;
+    divineUpgrades = {
+      createLife: 0,
+      controlTime: 0,
+      shapeReality: 0,
+      cosmicKnowledge: 0,
+      miracles: 0
+    };
+  }
+  function loadGameState(gameState) {
+    life = gameState.life || 0;
+    humans = gameState.humans || 0;
+    animals = gameState.animals || 0;
+    planetsProduced = gameState.planetsProduced || 0;
+    lifePerSecond = gameState.lifePerSecond || 0;
+    lifePerClick = gameState.lifePerClick || 1;
+    planetUpgradeCost = gameState.planetUpgradeCost || 10;
+    humanUpgradeCost = gameState.humanUpgradeCost || 100;
+    animalUpgradeCost = gameState.animalUpgradeCost || 50;
+    clickUpgradeCost = gameState.clickUpgradeCost || 50;
+    educationLevel = gameState.educationLevel || 0;
+    technologyLevel = gameState.technologyLevel || 0;
+    ecosystemLevel = gameState.ecosystemLevel || 0;
+    biodiversityLevel = gameState.biodiversityLevel || 0;
+    educationUpgradeCost = gameState.educationUpgradeCost || 200;
+    technologyUpgradeCost = gameState.technologyUpgradeCost || 500;
+    ecosystemUpgradeCost = gameState.ecosystemUpgradeCost || 150;
+    biodiversityUpgradeCost = gameState.biodiversityUpgradeCost || 300;
+    agricultureUpgradeCost = gameState.agricultureUpgradeCost || 250;
+    conservationUpgradeCost = gameState.conservationUpgradeCost || 350;
+    totalLifeProduced = gameState.totalLifeProduced || 0;
+    totalClicks = gameState.totalClicks || 0;
+    humansCreated = gameState.humansCreated || 0;
+    animalsCreated = gameState.animalsCreated || 0;
+    gameSeconds = gameState.gameSeconds || 0;
+    gameDays = gameState.gameDays || 0;
+    gameYears = gameState.gameYears || 0;
+    audioEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
+    musicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
+    graphicsSettings = {
+      mode: gameState.graphicsSettings?.mode || 'fidelity',
+      resolutionScale: gameState.graphicsSettings?.resolutionScale || 100,
+      shadowQuality: gameState.graphicsSettings?.shadowQuality || 'high',
+      textureQuality: gameState.graphicsSettings?.textureQuality || 'high', 
+      antiAliasing: gameState.graphicsSettings?.antiAliasing || 'fxaa',
+      postProcessing: gameState.graphicsSettings?.postProcessing || 'high',
+      gpuOptimization: gameState.graphicsSettings?.gpuOptimization || 'auto',
+      starsQuality: gameState.graphicsSettings?.starsQuality || 'high',
+      threeJsSettings: {
+        pixelRatio: window.devicePixelRatio,
+        toneMapping: THREE.ACESFilmicToneMapping,
+        toneMappingExposure: 1.0,
+        outputEncoding: THREE.sRGBEncoding
+      },
+      starsVerticesCount: {
+        ultra: 50000,
+        high: 25000,
+        medium: 12500,
+        low: 6000
+      },
+      starsOpacity: {
+        ultra: 1.0,
+        high: 0.8,
+        medium: 0.6,
+        low: 0.4
+      }
+    };
+
+    if (gameState.divineEnergy !== undefined) {
+      divineEnergy = gameState.divineEnergy;
+    }
+    if (gameState.divineUpgrades) {
+      divineUpgrades = gameState.divineUpgrades;
+    } else {
+      divineUpgrades = {
+        createLife: 0,
+        controlTime: 0,
+        shapeReality: 0,
+        cosmicKnowledge: 0,
+        miracles: 0
+      };
+    }
+
+    const soundBtn = document.getElementById('toggle-sound');
+    const musicBtn = document.getElementById('toggle-music');
+    if (soundBtn) soundBtn.textContent = `Sound Effects: ${audioEnabled ? 'On' : 'Off'}`;
+    if (musicBtn) musicBtn.textContent = `Music: ${musicEnabled ? 'On' : 'Off'}`;
+    document.getElementById('gpu-optimization').value = graphicsSettings.gpuOptimization;
+    document.getElementById('stars-quality').value = graphicsSettings.starsQuality;
+
+    updateCounters();
+    updateStats();
+    updateAllUpgradeButtonTexts();
+
+    if (gameState.graphicsSettings) {
+      document.getElementById('graphics-mode').value = graphicsSettings.mode;
+      document.getElementById('resolution-scale').value = graphicsSettings.resolutionScale;
+      document.getElementById('shadow-quality').value = graphicsSettings.shadowQuality;
+      document.getElementById('texture-quality').value = graphicsSettings.textureQuality;
+      document.getElementById('anti-aliasing').value = graphicsSettings.antiAliasing;
+      document.getElementById('post-processing').value = graphicsSettings.postProcessing;
+      
+      applyGraphicsSettings();
+    }
+    enforceLockedMaterialSettings();
+    updateDivineEnergy();
+    updateDivineUpgradeButtons();
+    initializeDivineUpgrades();
+    if (hasDLC) {
+      const dlcTab = document.querySelector('[data-tab="dlc"]');
+      if (dlcTab) {
+        dlcTab.style.display = 'block';
+      }
+      document.getElementById('dlc-tab').style.display = 'block';
+    } else {
+      const dlcTab = document.querySelector('[data-tab="dlc"]');
+      if (dlcTab) {
+        dlcTab.style.display = 'none'; 
+      }
+      document.getElementById('dlc-tab').style.display = 'none';
+    }
+  }
+
+  function loadFromSteamCloud() {
+    greenworks.readTextFromFile('planetidlesave.json', (success, data) => {
+      if (success) {
+        const gameState = JSON.parse(data);
+        loadGameState(gameState);
+      } else {
+        console.log("No saved game found in Steam Cloud. Starting a new game.");
+        initializeDefaultValues();
+      }
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    if (e.target.tagName === 'A' && e.target.href && window.require) {
+      e.preventDefault();
+      greenworks.activateGameOverlayToWebPage(e.target.href);
+    }
+  });
+
+  function initSteamAPI() {
+    if (window.require) {
+      if (!greenworks.init()) {
+        console.error('Steam API initialization failed');
+        return;
+      }
+      
+      if (greenworks.isDLCInstalled(DLC_APP_ID)) {
+        hasDLC = true;
+        const dlcTab = document.querySelector('[data-tab="dlc"]');
+        if (dlcTab) {
+          dlcTab.style.display = 'block';
+        }
+        document.getElementById('dlc-tab').style.display = 'block';
+      }
+    } else {
+      console.log('Steam API not available - running in browser mode');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', initSteamAPI);
 </script>
-<div id="options-tab" class="tab-pane">
-    <div id="sidebar">
-      <h2>Game Options</h2>
-      <div id="game-controls">
-        <button class="game-btn" id="save-game">Save Game</button>
-        <button class="game-btn" id="reset-game">Reset Game</button>
-        <button class="game-btn" id="toggle-sound">Sound Effects: On</button>
-        <button class="game-btn" id="toggle-music">Music: On</button>
-        <button class="game-btn" id="toggle-short-notation">Short Numbers: On</button>
-        <button class="game-btn" id="toggle-fast-notes">Fast Notes: On</button>
-        <button class="game-btn" id="toggle-vignette">Vignette Effect: Off</button>
-        <button class="game-btn" id="exit-save-game">Exit & Save</button>
-      </div>
-      <div class="graphics-settings">
-        <h3>NVIDIA RTX Settings</h3>
-        <div class="setting-group">
-          <label for="rtx-enabled">RTX Ray Tracing</label>
-          <select id="rtx-enabled" class="settings-dropdown">
-            <option value="off">Off</option>
-            <option value="on">On</option>
-          </select>
-        </div>
+<script>
+  // Add upgrade handler functions
+  function handlePlanetUpgrade() {
+    if (life >= planetUpgradeCost) {
+      life -= planetUpgradeCost;
+      planetsProduced++;
+      lifePerSecond += 1;
+      planetUpgradeCost = Math.floor(planetUpgradeCost * 1.15);
+      updateCounters();
+      updateStats();
+    }
+  }
 
-        <div class="setting-group">
-          <label for="rtx-samples">Ray Samples</label>
-          <select id="rtx-samples" class="settings-dropdown">
-            <option value="1">1x</option>
-            <option value="2">2x</option>
-            <option value="4">4x</option>
-            <option value="8">8x</option>
-          </select>
-        </div>
+  function handleHumanUpgrade() {
+    if (life >= humanUpgradeCost) {
+      life -= humanUpgradeCost;
+      humans += 1;
+      humansCreated += 1;
+      lifePerSecond += 1;
+      humanUpgradeCost = Math.floor(humanUpgradeCost * 1.15);
+      updateCounters();
+      updateStats();
+    } 
+  }
 
-        <div class="setting-group">
-          <label for="rtx-bounces">Light Bounces</label>
-          <select id="rtx-bounces" class="settings-dropdown">
-            <option value="2">2</option>
-            <option value="4">4</option>
-            <option value="8">8</option>
-          </select>
-        </div>
+  function handleAnimalUpgrade() {
+    if (life >= animalUpgradeCost) {
+      life -= animalUpgradeCost;
+      animals += 1;
+      animalsCreated += 1;
+      lifePerSecond += 0.5;
+      animalUpgradeCost = Math.floor(animalUpgradeCost * 1.15);
+      updateCounters(); 
+      updateStats();
+    }
+  }
 
-        <div class="setting-group">
-          <label for="rtx-denoise">Denoising</label>
-          <select id="rtx-denoise" class="settings-dropdown">
-            <option value="off">Off</option>
-            <option value="on">On</option>
-          </select>
-        </div>
+  function handleClickUpgrade() {
+    if (life >= clickUpgradeCost) {
+      life -= clickUpgradeCost;
+      lifePerClick *= 1.5;
+      clickUpgradeCost = Math.floor(clickUpgradeCost * 1.15);
+      updateCounters();
+      updateStats();
+    }
+  }
 
-        <div class="setting-group">
-          <label for="rtx-env-intensity">Environment Lighting</label>
-          <input type="range" id="rtx-env-intensity" min="0" max="2" step="0.1" value="1.0">
-          <span id="rtx-env-intensity-value">1.0</span>
-        </div>
-      </div>
-    </div>
-  </div>
+  function handleEducationUpgrade() {
+    if (life >= educationUpgradeCost) {
+      life -= educationUpgradeCost;
+      educationLevel++;
+      lifePerSecond *= 1.2;
+      educationUpgradeCost = Math.floor(educationUpgradeCost * 1.15);
+      updateCounters();
+      updateStats();
+    }
+  }
+
+  function handleTechnologyUpgrade() {
+    if (life >= technologyUpgradeCost) {
+      life -= technologyUpgradeCost;
+      technologyLevel++;
+      lifePerClick *= 1.2;
+      lifePerSecond *= 1.1;
+      technologyUpgradeCost = Math.floor(technologyUpgradeCost * 1.15);
+      updateCounters();
+      updateStats();
+    }
+  }
+
+  function handleEcosystemUpgrade() {
+    if (life >= ecosystemUpgradeCost) {
+      life -= ecosystemUpgradeCost;
+      ecosystemLevel++;
+      lifePerSecond *= 1.15;
+      ecosystemUpgradeCost = Math.floor(ecosystemUpgradeCost * 1.15);
+      updateCounters();
+      updateStats();
+    }
+  }
+
+  function handleBiodiversityUpgrade() {
+    if (life >= biodiversityUpgradeCost) {
+      life -= biodiversityUpgradeCost;
+      biodiversityLevel++;
+      lifePerSecond *= 1.25;
+      biodiversityUpgradeCost = Math.floor(biodiversityUpgradeCost * 1.15);
+      updateCounters();
+      updateStats();
+    }
+  }
+
+  function updateAllUpgradeButtonTexts() {
+    const upgrades = {
+      'planet-upgrade': planetUpgradeCost,
+      'human-upgrade': humanUpgradeCost,
+      'animal-upgrade': animalUpgradeCost,
+      'click-upgrade': clickUpgradeCost,
+      'education-upgrade': educationUpgradeCost,
+      'technology-upgrade': technologyUpgradeCost,
+      'ecosystem-upgrade': ecosystemUpgradeCost,
+      'biodiversity-upgrade': biodiversityUpgradeCost
+    };
+
+    for (const [id, cost] of Object.entries(upgrades)) {
+      const button = document.getElementById(id);
+      if (button) {
+        const label = id.split('-')[0];
+        button.textContent = `${label.charAt(0).toUpperCase() + label.slice(1)} Upgrade (Cost: ${formatNumber(cost)} Life)`;
+      }
+    }
+  }
+</script>
 </body>
 </html>
