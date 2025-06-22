@@ -1,759 +1,563 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Advanced Three.js Planet Idle Game with Zoom and Animals</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&amp;display=swap" rel="stylesheet">
-<link href="disable.css" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.174.0/three.tsl.js" integrity="sha512-kLVG+9hRPzp61ceEI5/hoRsQmEV9cFf4r4DOCYIBPteqgaTB6awXLAZlWUO5Dvlisok4doFjnxs75mngpXI35w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<title>Planet Genesis - Advanced Idle Evolution Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=Ubuntu:wght@300;400;500;700&family=Liberation+Sans:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-<script>
-// Preload require for Electron/Steam integration
-if (window.require) {
-  var greenworks = require('greenworks');
-} else {
-  var greenworks = {
-    init: () => false,
-    readTextFromFile: (file, cb) => cb(false),
-    saveTextToFile: (file, data, cb) => cb(false),
-    activateGameOverlayToWebPage: () => {},
-    isDLCInstalled: () => false
-  };
-}
-let hasDLC = false; // Track if player owns DLC 
-const DLC_APP_ID = 12345; // Replace with actual Steam DLC app ID
-
-const DIVINE_UPGRADE_EFFECTS = {
-  createLife: {
-    baseBonus: 2.5,
-    description: 'Increases life production per click and per second'
-  },
-  controlTime: {
-    baseBonus: 0.1, 
-    description: 'Speeds up game time progression'
-  },
-  shapeReality: {
-    baseBonus: 0.2,
-    description: 'Increases all production multipliers'
-  },
-  cosmicKnowledge: {
-    baseBonus: 0.15,
-    description: 'Boosts research and technology gains'
-  },
-  miracles: {
-    baseBonus: 0.05,
-    description: 'Chance to trigger divine interventions'
-  }
-};
-
-let gameTimeMultiplier = 1;
-let globalProductionMultiplier = 1;
-let researchMultiplier = 1; 
-let miracleChance = 0;
-
-const DIVINE_MIRACLES = {
-  divineBlessing: {
-    cost: 10000,
-    effect: 'Grants a massive life bonus based on current production'
-  },
-  timeFreeze: {
-    cost: 15000,
-    effect: 'Freezes time but maintains production for 30 seconds'
-  },
-  cosmicBurst: {
-    cost: 20000,
-    effect: 'Triggers multiple miracles simultaneously'
-  }
-};
-
-let timeFrozen = false;
-let divineBlessingActive = false;
-let blessingMultiplier = 1;
-const starMaterialUniforms = {
-  opacity: { value: 1.0 }
-};
-let targetZoom = 5;
-</script>
 <style>
-  /* Enhance base styles */
-  body, html {
-    background: linear-gradient(135deg, #0a192f 0%, #172a45 100%);
-    color: #e6f1ff;
-    font-family: 'Roboto', sans-serif;
+  :root {
+    --primary-blue: #00e5ff;
+    --primary-purple: #7c4dff;
+    --primary-green: #00ff9d;
+    --dark-bg: #0a0a0f;
+    --darker-bg: #05050a;
+    --card-bg: rgba(15, 25, 40, 0.85);
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --border-glow: rgba(0, 229, 255, 0.3);
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0c0;
+    --text-accent: #00e5ff;
+    --success: #00ff88;
+    --warning: #ffb800;
+    --danger: #ff3366;
   }
 
-  /* Enhanced mobile nav */
-  #mobile-nav {
-    background: linear-gradient(to top, 
-      rgba(26, 41, 71, 0.95), 
-      rgba(38, 61, 102, 0.95)
-    );
-    backdrop-filter: blur(15px);
-    border-top: 2px solid rgba(100,255,218,0.1);
+  * {
+    box-sizing: border-box;
   }
 
-  /* Enhanced nav buttons */
-  .nav-btn {
-    background: rgba(10,25,47,0.3);
-    border: 2px solid rgba(100,255,218,0.15);
-    padding: 14px 24px;
-    border-radius: 30px;
-    font-size: 16px;
-    letter-spacing: 0.8px;
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    color: #8892b0;
-  }
-
-  .nav-btn:hover {
-    background: rgba(100,255,218,0.1);
-    transform: translateY(-3px);
-    box-shadow: 
-      0 5px 15px rgba(0,0,0,0.3),
-      0 10px 30px rgba(0,0,0,0.2);
-    color: #ccd6f6;
-  }
-
-  .nav-btn.active {
-    background: linear-gradient(45deg, 
-      rgba(100,255,218,0.9), 
-      rgba(72,240,184,0.9)
-    );
-    border: none;
-    color: #0a192f;
-    font-weight: bold;
-    box-shadow: 
-      0 0 25px rgba(100,255,218,0.5),
-      0 0 50px rgba(100,255,218,0.3);
-    text-shadow: none;
-  }
-
-  /* Enhanced tab content */
-  #upgrades, #sidebar, #stats-container {
-    background: linear-gradient(135deg,
-      rgba(26, 41, 71, 0.95),
-      rgba(38, 61, 102, 0.95)
-    );
-    border: 2px solid rgba(100,255,218,0.1);
-    border-radius: 15px;
-    box-shadow: 
-      0 5px 15px rgba(0,0,0,0.2),
-      0 10px 30px rgba(0,0,0,0.1);
-    backdrop-filter: blur(10px);
-  }
-
-  /* Enhanced upgrade grid */
-  #upgrade-grid {
-    gap: 15px;
-    padding: 20px;
-  }
-
-  .upgrade-btn, .game-btn {
-    background: linear-gradient(135deg,
-      rgba(26, 41, 71, 0.9),
-      rgba(38, 61, 102, 0.9)
-    );
-    border: 2px solid rgba(100,255,218,0.1);
-    padding: 15px;
-    border-radius: 12px;
-    font-size: 15px;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 
-      0 5px 15px rgba(0,0,0,0.2);
-    color: #ccd6f6;
-  }
-
-  .upgrade-btn:hover, .game-btn:hover {
-    background: linear-gradient(135deg,
-      rgba(38, 61, 102, 0.95),
-      rgba(48, 76, 128, 0.95)
-    );
-    transform: translateY(-3px);
-    box-shadow:
-      0 8px 20px rgba(0,0,0,0.3);
-  }
-
-  /* Enhanced HUD */
-  #hud {
-    background: linear-gradient(to bottom,
-      rgba(10, 25, 47, 0.8),
-      rgba(26, 41, 71, 0.8)
-    );
-    border: 2px solid rgba(100,255,218,0.1);
-    box-shadow: 
-      0 5px 15px rgba(0,0,0,0.3);
-    backdrop-filter: blur(10px);
-  }
-
-  #life-counter {
-    font-size: 32px;
-    font-weight: bold;
-    text-shadow: 
-      0 0 15px #00ff9d,
-      0 0 30px #00ff9d;
-  }
-
-  /* Enhanced stats grid */
-  #stats-grid {
-    gap: 15px;
-    padding: 20px;
-  }
-
-  .stat-item {
-    background: linear-gradient(135deg,
-      rgba(0, 0, 0, 0.3),
-      rgba(20, 20, 40, 0.3)
-    );
-    border: 1px solid rgba(100,255,218,0.1);
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-  }
-
-  .stat-label {
-    color: #00ccff;
-    text-shadow: 0 0 10px rgba(0,204,255,0.5);
-  }
-
-  /* Enhanced graphics settings */
-  .graphics-settings {
-    background: linear-gradient(135deg,
-      rgba(20,20,40,0.98),
-      rgba(30,30,60,0.98)
-    );
-    border: 2px solid rgba(100,255,218,0.1);
-    border-radius: 20px;
-    padding: 20px;
-    margin: 15px 0;
-    box-shadow: 
-      0 5px 15px rgba(0,0,0,0.3),
-      0 10px 30px rgba(0,0,0,0.2);
-  }
-
-  .settings-dropdown {
-    background: linear-gradient(135deg,
-      rgba(40,40,80,0.98),
-      rgba(60,60,100,0.98)
-    );
-    border: 2px solid rgba(100,255,218,0.2);
-    border-radius: 10px;
-    padding: 10px 15px;
-    color: #fff;
-    transition: all 0.3s ease;
-    width: 220px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-  }
-
-  .settings-dropdown:hover {
-    background: linear-gradient(135deg,
-      rgba(60,60,100,0.98),
-      rgba(80,80,120,0.98)
-    );
-    border-color: rgba(100,255,218,0.3);
-    transform: translateY(-2px);
-  }
-
-  /* Enhanced divine content */
-  #gods-plan-dlc {
-    background: linear-gradient(45deg, 
-      rgba(64, 64, 128, 0.95), 
-      rgba(128, 64, 128, 0.95)
-    );
-    border: 2px solid rgba(100,255,218,0.1);
-    border-radius: 20px;
-    padding: 25px;
-    margin: 15px;
-    box-shadow: 
-      0 0 25px rgba(255,215,0,0.2),
-      0 0 50px rgba(255,215,0,0.1);
-    backdrop-filter: blur(10px);
-  }
-
-  .divine-upgrade-btn {
-    background: linear-gradient(45deg, 
-      rgba(74, 74, 138, 0.95),
-      rgba(106, 74, 138, 0.95)
-    );
-    border: 2px solid rgba(100,255,218,0.15);
-    padding: 18px;
-    margin: 8px;
-    border-radius: 12px;
-    font-weight: bold;
-    transition: all 0.4s;
-    text-shadow: 0 0 8px rgba(255,255,255,0.6);
-  }
-
-  .divine-upgrade-btn:hover {
-    transform: translateY(-4px);
-    box-shadow: 
-      0 0 25px rgba(255,255,255,0.25),
-      0 0 50px rgba(255,255,255,0.15);
-    background: linear-gradient(45deg, 
-      rgba(90, 90, 154, 0.95),
-      rgba(122, 90, 154, 0.95)
-    );
-  }
-
-  #divine-energy {
-    font-size: 28px;
-    color: #ffd700;
-    text-shadow: 
-      0 0 15px rgba(255, 215, 0, 0.6),
-      0 0 30px rgba(255, 215, 0, 0.4);
-    margin-bottom: 25px;
-  }
-
-  .divine-ability-btn {
-    background: linear-gradient(45deg, 
-      rgba(138,43,226,0.9), 
-      rgba(75,0,130,0.9)
-    );
-    border: 2px solid rgba(100,255,218,0.2);
-    padding: 18px;
-    margin: 12px;
-    border-radius: 15px;
-    font-weight: bold;
-    transition: all 0.4s;
-    text-shadow: 0 0 10px rgba(255,255,255,0.6);
-  }
-
-  .divine-ability-btn:hover:not(:disabled) {
-    transform: translateY(-4px);
-    box-shadow: 
-      0 0 30px rgba(138,43,226,0.5),
-      0 0 60px rgba(138,43,226,0.3);
-  }
-
-  .divine-ability-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
-
-  /* Mobile responsiveness */
-  @media (max-width: 768px) {
-    #mobile-nav {
-      height: 60px;
-    }
-    
-    .nav-btn {
-      padding: 10px 18px;
-      font-size: 14px;
-    }
-    
-    #upgrade-grid,
-    #stats-grid {
-      gap: 10px;
-      padding: 15px;
-    }
-    
-    .upgrade-btn,
-    .game-btn {
-      padding: 12px;
-      font-size: 14px;
-    }
-    
-    #life-counter {
-      font-size: 26px;
-    }
-  }
-  
   body, html {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
     overflow: hidden;
-    font-family: 'Roboto', sans-serif;
-    background-color: #0a192f;
-    color: #e6f1ff;
+    font-family: 'Inter', 'Ubuntu', 'Liberation Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    background: linear-gradient(135deg, var(--dark-bg) 0%, var(--darker-bg) 100%);
+    color: var(--text-primary);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
+
   #game-container {
     position: relative;
     width: 100%;
-    height: calc(100% - 70px);
+    height: calc(100% - 80px);
+    overflow: hidden;
   }
+
   #mobile-nav {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 70px;
-    background: linear-gradient(to top, rgba(26, 41, 71, 0.98), rgba(38, 61, 102, 0.98));
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(100,255,218,0.1);
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+    height: 80px;
+    background: linear-gradient(180deg, 
+      rgba(10, 10, 15, 0.95) 0%, 
+      rgba(5, 5, 10, 0.98) 100%);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-glow);
     display: flex;
     justify-content: space-around;
     align-items: center;
     z-index: 1000;
-    padding: 0 10px;
+    padding: 0 20px;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
   }
+
   .nav-btn {
-    background: rgba(0,0,0,0.2);
-    border: 1px solid rgba(100,255,218,0.1);
-    padding: 12px 20px;
-    border-radius: 25px;
-    font-size: 15px;
-    letter-spacing: 0.5px;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    color: #8892b0;
-    font-weight: bold;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 8px;
     cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 12px;
     outline: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 22%;
+    min-height: 56px;
   }
+
+  .nav-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+    border-radius: 12px;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: -1;
+  }
+
   .nav-btn:hover {
-    background: rgba(100,255,218,0.15);
+    color: var(--text-primary);
+    transform: translateY(-3px);
+  }
+
+  .nav-btn:hover::before {
+    opacity: 0.1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .nav-btn.active {
+    color: var(--primary-blue);
+    background: var(--glass-bg);
+    box-shadow: 
+      0 8px 25px rgba(0, 229, 255, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
     transform: translateY(-2px);
   }
-  .nav-btn.active {
-    background: linear-gradient(45deg, #00ccff, #00ff88);
-    border: none;
-    color: #0a192f;
-    font-weight: bold;
-    box-shadow: 
-      0 0 20px rgba(0,204,255,0.4),
-      0 0 40px rgba(0,204,255,0.2);
+
+  .nav-btn.active::before {
+    opacity: 0.15;
+    transform: translate(-50%, -50%) scale(1);
   }
+
+  .nav-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    width: 30px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--primary-blue), transparent);
+    border-radius: 3px;
+    transform: translateX(-50%);
+    box-shadow: 0 0 15px var(--primary-blue);
+  }
+
   #tab-content {
     height: 100%;
   }
+
   .tab-pane {
     display: none;
     height: 100%;
     overflow-y: auto;
   }
+
   .tab-pane.active {
     display: block;
   }
-  [data-tab="dlc"] {
-    display: none;
-  }
-  #dlc-tab {
-    display: none; 
-  }
+
   #hud {
     position: absolute;
-    top: 10px;
+    top: 20px;
     left: 50%;
     transform: translateX(-50%);
     width: auto;
-    max-width: 80%;
+    max-width: 85%;
     margin: 0;
-    padding: 15px;
-    background-color: rgba(0, 0, 0, 0.7);
-    border-radius: 10px;
+    padding: 20px 25px;
+    background: var(--card-bg);
+    backdrop-filter: blur(15px);
+    border-radius: 20px;
     text-align: center;
+    border: 1px solid var(--border-glow);
+    box-shadow: 
+      0 15px 35px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
+
   #upgrades, #sidebar, #stats-container {
-    background-color: rgba(74, 74, 138, 0.9);
-    border-radius: 10px;
-    margin: 10px;
-    padding: 15px;
+    background: var(--card-bg);
+    backdrop-filter: blur(15px);
+    border-radius: 20px;
+    margin: 15px;
+    padding: 25px;
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
+    border: 1px solid var(--border-glow);
+    box-shadow: 
+      0 20px 40px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
+
   .upgrade-btn, .game-btn {
-    margin: 5px;
-    padding: 10px;
-    background-color: #4a4a8a;
-    color: white;
-    border: none;
+    margin: 8px;
+    padding: 16px;
+    background: linear-gradient(135deg, 
+      rgba(124, 77, 255, 0.1) 0%, 
+      rgba(0, 229, 255, 0.05) 100%);
+    color: var(--text-primary);
+    border: 1px solid rgba(124, 77, 255, 0.3);
     cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.3s;
+    border-radius: 16px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 14px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-weight: 500;
     text-align: center;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100%;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
   }
+
+  .upgrade-btn::before, .game-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(255, 255, 255, 0.1), 
+      transparent);
+    transition: left 0.6s ease;
+  }
+
   .upgrade-btn:hover, .game-btn:hover {
-    background-color: #5a5a9a;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, 
+      rgba(124, 77, 255, 0.2) 0%, 
+      rgba(0, 229, 255, 0.1) 100%);
+    border-color: rgba(0, 229, 255, 0.5);
+    transform: translateY(-3px);
+    box-shadow: 
+      0 15px 30px rgba(0, 229, 255, 0.2),
+      0 0 20px rgba(124, 77, 255, 0.1);
   }
+
+  .upgrade-btn:hover::before, .game-btn:hover::before {
+    left: 100%;
+  }
+
+  .upgrade-btn:active, .game-btn:active {
+    transform: translateY(-1px);
+  }
+
   #upgrade-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 10px;
-    padding-bottom: 70px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 15px;
+    padding-bottom: 90px;
   }
+
   #game-controls {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 10px;
-    padding-bottom: 70px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    padding-bottom: 90px;
   }
+
   #life-counter {
-    font-size: 28px;
-    margin-bottom: 8px;
-    color: #00ff9d;
-    text-shadow: 0 0 10px #00ff9d;
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--primary-green);
+    text-shadow: 0 0 20px var(--primary-green);
+    letter-spacing: -0.5px;
   }
+
   #humans-counter, #animals-counter, #lps-counter {
     font-size: 16px;
-    margin-bottom: 4px;
-    color: #00ccff;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--primary-blue);
+    text-shadow: 0 0 10px var(--primary-blue);
   }
+
   #time-counter {
     font-size: 14px;
-    margin-top: 8px;
-    color: #ffd700;
+    margin-top: 12px;
+    color: var(--warning);
+    font-family: 'Space Mono', 'Ubuntu Mono', 'Liberation Mono', 'Courier New', monospace;
+    font-weight: 400;
+    text-shadow: 0 0 10px var(--warning);
   }
+
   .click-text {
-    position: fixed; 
-    font-size: 20px;
-    color: #00ff00;
+    position: absolute;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary-green);
     pointer-events: none;
     z-index: 1000;
     will-change: transform, opacity;
-    transform: translate(-50%, -50%);
+    text-shadow: 0 0 15px var(--primary-green);
   }
+
   .life-particle {
-    position: fixed; 
-    width: 30px;
-    height: 30px;
-    background: radial-gradient(circle, #00ff00 0%, rgba(0,255,0,0.6) 50%, rgba(0,255,0,0) 100%);
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background: radial-gradient(circle, var(--primary-green) 0%, transparent 70%);
     border-radius: 50%;
     pointer-events: none;
     z-index: 1000;
     box-shadow: 
-      0 0 15px #00ff00,
-      0 0 25px #00ff00,
-      0 0 35px #00ff00;
+      0 0 15px var(--primary-green), 
+      0 0 30px var(--primary-green),
+      inset 0 0 10px rgba(255, 255, 255, 0.3);
     will-change: transform, opacity;
-    filter: blur(1px);
-    transform: translate(-50%, -50%);
   }
+
   #offline-progress-notification {
     position: fixed;
-    bottom: 70px;
+    bottom: 90px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: rgba(74, 74, 138, 0.9);
-    color: white;
-    padding: 15px;
-    border-radius: 10px;
+    background: var(--card-bg);
+    backdrop-filter: blur(15px);
+    color: var(--text-primary);
+    padding: 20px 25px;
+    border-radius: 20px;
     text-align: center;
     z-index: 1001;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-glow);
+    box-shadow: 
+      0 20px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    max-width: 90%;
   }
+
   #offline-progress-notification p {
-    margin: 5px 0;
+    margin: 8px 0;
+    font-weight: 500;
   }
-  @media (max-width: 768px) {
-    #game-container {
-      height: calc(100% - 60px);
-    }
-    #hud {
-      max-width: 90%;
-      padding: 10px;
-    }
-    #life-counter {
-      font-size: 24px;
-    }
-    #humans-counter, #animals-counter, #lps-counter {
-      font-size: 14px;
-    }
-    #time-counter {
-      font-size: 12px;
-    }
-    #upgrades, #sidebar, #stats-container {
-      margin: 5px;
-      padding: 10px;
-    }
-    .upgrade-btn, .game-btn {
-      font-size: 14px;
-      padding: 12px;
-    }
+
+  #offline-progress-notification p:first-child {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--primary-blue);
   }
+
+  h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+    text-align: center;
+    letter-spacing: -0.3px;
+  }
+
   #stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 10px;
-    padding-bottom: 70px;
-  }
-  .stat-item {
-    background-color: rgba(0, 0, 0, 0.2);
-    padding: 10px;
-    border-radius: 5px;
-  }
-  .stat-label {
-    font-weight: bold;
-    display: block;
-    margin-bottom: 5px;
-  }
-  #vignette-overlay {
-    display: none;
-  }
-  
-  .graphics-settings {
-    background: rgba(20,20,40,0.95);
-    border: 1px solid rgba(100,255,218,0.1);
-    border-radius: 15px;
-    padding: 15px;
-    margin: 10px 0;
-  }
-
-  .settings-dropdown {
-    background: rgba(40,40,80,0.95);
-    border: 1px solid rgba(100,255,218,0.2);
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: #fff;
-    transition: all 0.3s ease;
-    width: 200px;
-  }
-
-  .settings-dropdown:hover {
-    background: rgba(60,60,100,0.95);
-    border-color: rgba(100,255,218,0.3);
-  }
-
-  .setting-group {
-    margin: 10px 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .setting-group label {
-    min-width: 150px;
-  }
-
-  input[type="range"] {
-    width: 200px;
-  }
-  
-  #gods-plan-dlc {
-    background: linear-gradient(45deg, rgba(64, 64, 128, 0.9), rgba(128, 64, 128, 0.9));
-    border-radius: 15px;
-    padding: 20px;
-    margin: 10px;
-    box-shadow: 
-      0 0 20px rgba(255,215,0,0.2),
-      0 0 40px rgba(255,215,0,0.1);
-  }
-
-  .divine-upgrade-btn {
-    background: linear-gradient(45deg, #4a4a8a, #6a4a8a);
-    border: 2px solid rgba(100,255,218,0.1);
-    padding: 15px;
-    margin: 5px;
-    border-radius: 10px;
-    color: #fff;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-shadow: 0 0 5px rgba(255,255,255,0.5);
-  }
-
-  .divine-upgrade-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 
-      0 0 20px rgba(255,255,255,0.2),
-      0 0 40px rgba(255,255,255,0.1);
-    background: linear-gradient(45deg, #5a5a9a, #7a5a9a);
-  }
-
-  #divine-upgrade-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 15px;
-    padding: 20px 0;
+    padding-bottom: 90px;
   }
 
-  #divine-energy {
-    font-size: 24px;
-    color: #ffd700;
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-    margin-bottom: 20px;
-    text-align: center;
-  }
-
-  .divine-upgrade-description {
-    font-size: 14px;
-    color: #ccc;
-    margin-top: 5px;
-  }
-
-  .divine-upgrade-level {
-    color: gold;
-    font-weight: bold;
-    margin-top: 5px;
-  }
-
-  .miracle-particle {
-    position: fixed;
-    pointer-events: none;
-    width: 10px;
-    height: 10px;
-    background: radial-gradient(circle, gold, transparent);
-    border-radius: 50%;
-    animation: float 3s infinite;
-  }
-
-  @keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
-  }
-
-  @keyframes float {
-    0% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-20px) rotate(180deg); }
-    100% { transform: translateY(0) rotate(360deg); }
-  }
-  
-  .divine-ability-btn {
-    background: linear-gradient(45deg, #8a2be2, #4b0082);
-    color: #fff;
-    border: 2px solid rgba(100,255,218,0.2);
-    padding: 15px;
-    margin: 10px;
+  .stat-item {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 16px;
     border-radius: 12px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-shadow: 0 0 8px rgba(255,255,255,0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(5px);
+    transition: all 0.3s ease;
   }
 
-  .divine-ability-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 
-      0 0 25px rgba(138,43,226,0.4),
-      0 0 45px rgba(138,43,226,0.2);
+  .stat-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    border-color: var(--border-glow);
   }
 
-  .divine-ability-btn:disabled {
+  .stat-label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .stat-item span:last-child {
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--primary-blue);
+  }
+
+  #vignette-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    background: radial-gradient(circle at center, 
+      transparent 40%, 
+      rgba(0, 0, 0, 0.7) 100%);
+  }
+
+  #vignette-overlay.active {
+    opacity: 1;
+  }
+
+  #game-info {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  #game-info p {
+    margin: 8px 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-family: 'Space Mono', 'Ubuntu Mono', 'Liberation Mono', 'Courier New', monospace;
+  }
+
+  @media (max-width: 768px) {
+    #game-container {
+      height: calc(100% - 70px);
+    }
+    
+    #mobile-nav {
+      height: 70px;
+      padding: 0 15px;
+    }
+    
+    .nav-btn {
+      font-size: 11px;
+      padding: 10px 6px;
+      min-height: 50px;
+    }
+    
+    #hud {
+      max-width: 92%;
+      padding: 16px 20px;
+      top: 15px;
+    }
+    
+    #life-counter {
+      font-size: 28px;
+    }
+    
+    #humans-counter, #animals-counter, #lps-counter {
+      font-size: 15px;
+    }
+    
+    #time-counter {
+      font-size: 13px;
+    }
+    
+    #upgrades, #sidebar, #stats-container {
+      margin: 10px;
+      padding: 20px;
+    }
+    
+    h2 {
+      font-size: 22px;
+    }
+    
+    #upgrade-grid {
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      padding-bottom: 80px;
+    }
+    
+    #game-controls {
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      padding-bottom: 80px;
+    }
+    
+    #stats-grid {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      padding-bottom: 80px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    #upgrade-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    #game-controls {
+      grid-template-columns: 1fr;
+    }
+    
+    #stats-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .nav-btn {
+      font-size: 10px;
+    }
+  }
+
+  /* Scrollbar styling */
+  .tab-pane::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .tab-pane::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+  }
+
+  .tab-pane::-webkit-scrollbar-thumb {
+    background: var(--primary-blue);
+    border-radius: 3px;
     opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
   }
-  
-  @keyframes miraclePulse {
-    0% {
-      transform: translate(-50%, -50%) scale(0);
-      opacity: 1;
-    }
-    100% {
-      transform: translate(-50%, -50%) scale(4);
-      opacity: 0;
-    }
+
+  .tab-pane::-webkit-scrollbar-thumb:hover {
+    opacity: 0.8;
+  }
+
+  /* Loading animation */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .loading {
+    animation: pulse 2s infinite;
+  }
+
+  /* Glow effects */
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(0, 229, 255, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(0, 229, 255, 0.6); }
+  }
+
+  .glow-effect {
+    animation: glow 3s infinite;
   }
 </style>
 </head>
 <body>
 <div id="mobile-nav">
-  <button class="nav-btn active" data-tab="home">Home</button>
-  <button class="nav-btn" data-tab="creativity">Creativity</button>
-  <button class="nav-btn" data-tab="stats">Stats</button>
-  <button class="nav-btn" data-tab="options">Options</button>
+  <button class="nav-btn active" data-tab="home">
+    <div style="font-size: 20px; margin-bottom: 4px;">🌍</div>
+    Home
+  </button>
+  <button class="nav-btn" data-tab="creativity">
+    <div style="font-size: 20px; margin-bottom: 4px;">⚡</div>
+    Evolution
+  </button>
+  <button class="nav-btn" data-tab="stats">
+    <div style="font-size: 20px; margin-bottom: 4px;">📊</div>
+    Stats
+  </button>
+  <button class="nav-btn" data-tab="options">
+    <div style="font-size: 20px; margin-bottom: 4px;">⚙️</div>
+    Settings
+  </button>
 </div>
 <div id="tab-content">
   <div id="home-tab" class="tab-pane active">
@@ -769,7 +573,7 @@ let targetZoom = 5;
   </div>
   <div id="creativity-tab" class="tab-pane">
     <div id="upgrades">
-      <h2>Upgrades</h2>
+      <h2>🧬 Evolution Lab</h2>
       <div id="upgrade-grid">
         <button class="upgrade-btn" id="planet-upgrade">Upgrade Planet (Cost: 10 Life)</button>
         <button class="upgrade-btn" id="human-upgrade">Create Humans (Cost: 100 Life)</button>
@@ -781,18 +585,12 @@ let targetZoom = 5;
         <button class="upgrade-btn" id="biodiversity-upgrade">Increase Biodiversity (Cost: 300 Life)</button>
         <button class="upgrade-btn" id="agriculture-upgrade">Develop Agriculture (Cost: 250 Life)</button>
         <button class="upgrade-btn" id="conservation-upgrade">Wildlife Conservation (Cost: 350 Life)</button>
-        <button class="upgrade-btn" id="research-upgrade">Research Institute (Cost: 400 Life)</button>
-        <button class="upgrade-btn" id="innovation-upgrade">Innovation Center (Cost: 600 Life)</button>
-        <button class="upgrade-btn" id="culture-upgrade">Cultural Exchange (Cost: 450 Life)</button>
-        <button class="upgrade-btn" id="exploration-upgrade">Space Exploration (Cost: 800 Life)</button>
-        <button class="upgrade-btn" id="sustainability-upgrade">Sustainability Project (Cost: 550 Life)</button>
-        <button class="upgrade-btn" id="energy-upgrade">Clean Energy (Cost: 700 Life)</button>
       </div>
     </div>
   </div>
   <div id="stats-tab" class="tab-pane">
     <div id="stats-container">
-      <h2>Game Statistics</h2>
+      <h2>📈 Planetary Statistics</h2>
       <div id="stats-grid">
         <div class="stat-item">
           <span class="stat-label" id="total-life-label">Total Life Produced:</span>
@@ -823,7 +621,7 @@ let targetZoom = 5;
   </div>
   <div id="options-tab" class="tab-pane">
     <div id="sidebar">
-      <h2>Game Options</h2>
+      <h2>⚙️ Game Settings</h2>
       <div id="game-controls">
         <button class="game-btn" id="save-game">Save Game</button>
         <button class="game-btn" id="reset-game">Reset Game</button>
@@ -832,1709 +630,846 @@ let targetZoom = 5;
         <button class="game-btn" id="toggle-short-notation">Short Numbers: On</button>
         <button class="game-btn" id="toggle-fast-notes">Fast Notes: On</button>
         <button class="game-btn" id="toggle-vignette">Vignette Effect: Off</button>
-        <button class="game-btn" id="exit-save-game">Exit & Save</button>
-      </div>
-      <div class="graphics-settings">
-        <h3>Graphics Settings</h3>
-        <select id="graphics-mode" class="settings-dropdown">
-          <option value="fidelity">Fidelity Mode</option>
-          <option value="performance">Performance Mode</option>
-        </select>
-        
-        <div class="graphics-options">
-          <div class="setting-group">
-            <label for="resolution-scale">Resolution Scale</label>
-            <input type="range" id="resolution-scale" min="50" max="100" value="100">
-            <span id="resolution-scale-value">100%</span>
-          </div>
-
-          <div class="setting-group">
-            <label for="shadow-quality">Shadow Quality</label>
-            <select id="shadow-quality" class="settings-dropdown">
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-          </div>
-
-          <div class="setting-group"> 
-            <label for="texture-quality">Texture Quality</label>
-            <select id="texture-quality" class="settings-dropdown">
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-          </div>
-
-          <div class="setting-group">
-            <label for="anti-aliasing">Anti-Aliasing</label>
-            <select id="anti-aliasing" class="settings-dropdown">
-              <option value="fxaa">FXAA</option>
-              <option value="msaa2x">MSAA 2x</option>
-              <option value="msaa4x">MSAA 4x</option>
-              <option value="off">Off</option>
-            </select>
-          </div>
-
-          <div class="setting-group">
-            <label for="post-processing">Post Processing</label>
-            <select id="post-processing" class="settings-dropdown">
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-              <option value="off">Off</option>
-            </select>
-          </div>
-          <div class="setting-group">
-            <label for="gpu-optimization">GPU Optimization Profile</label>
-            <select id="gpu-optimization" class="settings-dropdown">
-              <option value="auto">Auto-Detect</option>
-              <option value="nvidia">NVIDIA Optimized</option>
-              <option value="amd">AMD Optimized</option>
-              <option value="none">No Optimization</option>
-            </select>
-          </div>
-          <div class="setting-group">
-            <label for="stars-quality">Stars Quality</label>
-            <select id="stars-quality" class="settings-dropdown">
-              <option value="ultra">Ultra</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-          </div>
-        </div>
       </div>
       <div id="game-info">
-        <p id="zoom-info">Zoom Controls: Z (zoom in) / O (zoom out)</p>
+        <p id="zoom-info">Zoom: Z (in) / O (out)</p>
         <p id="human-activity">Human Activity: Idle</p>
       </div>
-    </div>
-  </div>
-  <div id="dlc-tab" class="tab-pane">
-    <div id="gods-plan-dlc">
-      <h2>God's Plan DLC</h2>
-      <div id="divine-stats">
-        <div id="divine-energy">Divine Energy: 0</div>
-      </div>
-      <div id="divine-upgrade-grid">
-        <button class="divine-upgrade-btn" id="create-life-upgrade">
-          Create Life (Cost: 1000 Divine Energy)
-        </button>
-        <button class="divine-upgrade-btn" id="control-time-upgrade">
-          Control Time (Cost: 2000 Divine Energy)
-        </button>
-        <button class="divine-upgrade-btn" id="shape-reality-upgrade">
-          Shape Reality (Cost: 5000 Divine Energy)
-        </button>
-        <button class="divine-upgrade-btn" id="cosmic-knowledge-upgrade">
-          Cosmic Knowledge (Cost: 3000 Divine Energy)
-        </button>
-        <button class="divine-upgrade-btn" id="miracles-upgrade">
-          Miracles (Cost: 4000 Divine Energy)
-        </button>
-      </div>
-      <button class="divine-ability-btn" id="divine-blessing">
-        Divine Blessing (Cost: 10000 Divine Energy)
-      </button>
-      <button class="divine-ability-btn" id="time-freeze">
-        Time Freeze (Cost: 15000 Divine Energy) 
-      </button>
-      <button class="divine-ability-btn" id="cosmic-burst">
-        Cosmic Burst (Cost: 20000 Divine Energy)
-      </button>
     </div>
   </div>
 </div>
 <div id="vignette-overlay"></div>
 <script>
-  let audioEnabled = true;
-  let musicEnabled = true;
-  let audioPlayer;
-  let musicPlayer;
-  function getText(key) {
-    return key;
-  }
-  const gpuOptimizationProfiles = {
-    nvidia: {
-      shaderPrecision: 'highp',
-      textureAnisotropy: 16,
-      shaderComplexity: 'high',
-      computeOptimization: 'balanced'
-    },
-    amd: {
-      shaderPrecision: 'mediump', 
-      textureAnisotropy: 8,
-      shaderComplexity: 'medium',
-      computeOptimization: 'compute'
-    },
-    none: {
-      shaderPrecision: 'mediump',
-      textureAnisotropy: 4, 
-      shaderComplexity: 'low', 
-      computeOptimization: 'balanced'
-    }
-  };
-  let graphicsSettings = {
-    mode: 'fidelity',
-    resolutionScale: 100,
-    shadowQuality: 'high', 
-    textureQuality: 'high',
-    antiAliasing: 'fxaa',
-    postProcessing: 'high',
-    gpuOptimization: 'auto',
-    starsQuality: 'high',
-    threeJsSettings: {
-      pixelRatio: window.devicePixelRatio,
-      toneMapping: THREE.ACESFilmicToneMapping,
-      toneMappingExposure: 1.0,
-      outputEncoding: THREE.sRGBEncoding
-    },
-    starsVerticesCount: {
-      ultra: 50000,
-      high: 25000,
-      medium: 12500,
-      low: 6000
-    },
-    starsOpacity: {
-      ultra: 1.0,
-      high: 0.8,
-      medium: 0.6,
-      low: 0.4
-    }
-  };
+let audioEnabled = true;
+let musicEnabled = true;
+let audioPlayer;
+let musicPlayer;
 
-  let gpuInfo = {
-    vendor: '',
-    renderer: '',
-    isHighEnd: false,
-    isNvidia: false,
-    isAMD: false
-  };
+function getText(key) {
+  return key; 
+}
+
+function initializeGame() {
+  loadGame();
+  initMobileTabs();
+  updateStats();
+  autosave();
+  autoload();
+  initializeAudio();
+  toggleBackgroundMusic(); // Start background music on game load
   
-  let earthTexture, earthNormalMap, earthSpecularMap, cloudTexture, moonTexture, moonBumpMap;
-  let moonMaterial;
-  let moon;
-  let moonOrbit;
+  // Add enhanced visual effects
+  initializeParticleSystem();
+  startGlowAnimations();
+}
 
-  const LOCKED_EARTH_SETTINGS = Object.freeze({
-    bumpScale: 0.05,
-    specular: new THREE.Color('grey'),
-    shininess: 30,
-    emissive: new THREE.Color(0x000000),
-    emissiveIntensity: 0,
-    opacity: 1.0,
-    transparent: false,
-    envMapIntensity: 1.0
-  });
-
-  const LOCKED_MOON_SETTINGS = Object.freeze({
-    bumpScale: 0.002,
-    specular: new THREE.Color(0x222222),
-    shininess: 20,
-    emissive: new THREE.Color(0x000000), 
-    emissiveIntensity: 0,
-    opacity: 1.0,
-    transparent: false,
-    envMapIntensity: 1.0
-  });
-
-  const LOCKED_CLOUD_SETTINGS = Object.freeze({
-    opacity: 0.8,
-    transparent: true,
-    depthWrite: false,
-    emissive: new THREE.Color(0x000000),
-    emissiveIntensity: 0
-  });
-
-  const earthVertexShader = `
-    varying vec2 vUv;
-    varying vec3 vNormal;
-    varying vec3 vSurfaceToLight;
-    varying vec3 vViewDir;
+function initializeParticleSystem() {
+  // Enhanced particle effects for better visual feedback
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes particleFloat {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+    }
     
-    void main() {
-      vUv = uv;
-      vNormal = normalize(normalMatrix * normal);
-      vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-      vSurfaceToLight = normalize(vec3(5, 3, 5) - worldPosition.xyz);
-      vViewDir = normalize(cameraPosition - worldPosition.xyz);
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    .enhanced-particle {
+      animation: particleFloat 2s ease-out forwards;
     }
   `;
+  document.head.appendChild(style);
+}
 
-  const earthFragmentShader = `
-    uniform sampler2D diffuseMap;
-    uniform sampler2D bumpMap;
-    uniform sampler2D specularMap;
-    uniform vec3 ambientLight;
-    
-    varying vec2 vUv;
-    varying vec3 vNormal;
-    varying vec3 vSurfaceToLight;
-    varying vec3 vViewDir;
-    
-    void main() {
-      vec4 diffuseColor = texture2D(diffuseMap, vUv);
-      vec4 bumpValue = texture2D(bumpMap, vUv);
-      vec4 specularValue = texture2D(specularMap, vUv);
-      
-      vec3 normal = normalize(vNormal + 2.0 * (bumpValue.xyz - 0.5));
-      
-      float lambertian = max(dot(normal, vSurfaceToLight), 0.0);
-      float specular = 0.0;
-      
-      if(lambertian > 0.0) {
-        vec3 halfDir = normalize(vSurfaceToLight + vViewDir);
-        float specAngle = max(dot(normal, halfDir), 0.0);
-        specular = pow(specAngle, 32.0);
-      }
-      
-      vec3 color = ambientLight * diffuseColor.rgb +
-                   lambertian * diffuseColor.rgb +
-                   specular * specularValue.rgb;
-                   
-      gl_FragColor = vec4(color, diffuseColor.a);
-    }
-  `;
-
-  let divineEnergy = 0;
-  let divineUpgrades = {
-    createLife: 0,
-    controlTime: 0,
-    shapeReality: 0,
-    cosmicKnowledge: 0,
-    miracles: 0
-  };
-
-  const DIVINE_UPGRADE_BASE_COSTS = {
-    createLife: 1000,
-    controlTime: 2000, 
-    shapeReality: 5000,
-    cosmicKnowledge: 3000,
-    miracles: 4000
-  };
-
-  const DIVINE_MULTIPLIERS = {
-    createLife: 2.5,
-    controlTime: 2,
-    shapeReality: 3,
-    cosmicKnowledge: 1.5,
-    miracles: 2
-  };
-
-  const RTX_SETTINGS = {
-    enabled: false,
-    samples: 1,
-    bounces: 2,
-    denoise: true,
-    environmentIntensity: 1.0,
-    toneMapping: THREE.ACESFilmicToneMapping
-  };
-
-  const pathTracingRenderer = new THREE.WebGLRenderer({
-    canvas: document.createElement('canvas'),
-    antialias: true
-  });
-
-  function initializeDivineUpgrades() {
-    const divineUpgradeButtons = document.querySelectorAll('[id$="-upgrade"]');
-    if (divineUpgradeButtons) {
-      Object.keys(DIVINE_UPGRADE_BASE_COSTS).forEach(type => {
-        const btn = document.getElementById(`${type}-upgrade`);
-        if (btn) {
-          btn.addEventListener('click', () => upgradeDivineAbility(type)); 
-        }
-      });
-    }
-    updateDivineUpgradeButtons();
-    document.getElementById('divine-blessing').addEventListener('click', triggerDivineBlessing);
-    document.getElementById('time-freeze').addEventListener('click', triggerTimeFreeze);
-    document.getElementById('cosmic-burst').addEventListener('click', triggerCosmicBurst);
+function startGlowAnimations() {
+  // Add subtle glow effects to key UI elements
+  const hudElement = document.getElementById('hud');
+  if (hudElement) {
+    hudElement.classList.add('glow-effect');
   }
+}
 
-  document.addEventListener('DOMContentLoaded', () => {
-    initializeDivineUpgrades();
-  });
+document.addEventListener('DOMContentLoaded', initializeGame);
 
-  function updateDivineUpgradeButtons() {
-    Object.keys(DIVINE_UPGRADE_BASE_COSTS).forEach(type => {
-      const btn = document.getElementById(`${type}-upgrade`);
-      if (btn) {
-        const cost = DIVINE_UPGRADE_BASE_COSTS[type] * Math.pow(1.15, divineUpgrades[type]);
-        btn.innerHTML = `
-          ${type.replace(/([A-Z])/g, ' $1').trim()}
-          <div class="divine-upgrade-level">Level: ${divineUpgrades[type]}</div>
-          <div class="divine-upgrade-description">${DIVINE_UPGRADE_EFFECTS[type].description}</div>
-          Cost: ${formatNumber(cost)} Divine Energy
-        `;
-      }
+function isLocalStorageAvailable() {
+  try {
+    const test = '__storage_test__';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+let totalLifeProduced = 0;
+let totalClicks = 0;
+let humansCreated = 0;
+let animalsCreated = 0;
+
+function initializeAudio() {
+  audioPlayer = new Audio();
+  audioPlayer.src = 'audio/clicksound.mp3'; 
+  audioPlayer.preload = 'auto';
+
+  musicPlayer = new Audio(); 
+  musicPlayer.src = 'audio/background.mp3'; 
+  musicPlayer.preload = 'auto';
+  musicPlayer.loop = true;
+  
+  // Don't auto-play music until user interaction
+  if (musicEnabled) {
+    document.addEventListener('click', function initMusic() {
+      playBackgroundMusic();
+      document.removeEventListener('click', initMusic);
+    }, {once: true});
+  }
+}
+
+function playClickSound() {
+  if (audioEnabled && audioPlayer) {
+    const sound = audioPlayer.cloneNode();
+    sound.play().catch(err => console.log('Click sound failed:', err));
+  }
+}
+
+function playBackgroundMusic() {
+  if (musicEnabled && musicPlayer) {
+    musicPlayer.play().catch(err => {
+      console.log('Background music start failed:', err);
+      // Retry on next user interaction
+      document.addEventListener('click', function retryMusic() {
+        musicPlayer.play().catch(err => console.log('Retry failed:', err));
+        document.removeEventListener('click', retryMusic);
+      }, {once: true});
     });
   }
+}
 
-  function updateDivineEnergy() {
-    const divineEnergyEl = document.getElementById('divine-energy');
-    if (divineEnergyEl) {
-      divineEnergyEl.textContent = 
-        `Divine Energy: ${formatNumber(divineEnergy)}`;
+function toggleBackgroundMusic() {
+  if (musicEnabled) {
+    playBackgroundMusic();
+  } else {
+    if (musicPlayer) {
+      musicPlayer.pause();
     }
   }
+}
 
-  function initializeGame() {
-    targetZoom = camera.position.z;
-    loadGame();
-    initMobileTabs();
+let life = 0;
+let humans = 0;
+let animals = 0;
+let planetsProduced = 0;
+let lifePerSecond = 0;
+let lifePerClick = 1;
+let planetUpgradeCost = 10;
+let humanUpgradeCost = 100;
+let animalUpgradeCost = 50;
+let clickUpgradeCost = 50;
+let educationLevel = 0;
+let technologyLevel = 0;
+let ecosystemLevel = 0;
+let biodiversityLevel = 0;
+let educationUpgradeCost = 200;
+let technologyUpgradeCost = 500;
+let ecosystemUpgradeCost = 150;
+let biodiversityUpgradeCost = 300;
+let agricultureUpgradeCost = 250;
+let conservationUpgradeCost = 350;
+let gameSeconds = 0;
+let gameDays = 0;
+let gameYears = 0;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 5;
+
+function formatNumber(num) {
+  const shortNotation = document.getElementById('toggle-short-notation').textContent === 'Short Numbers: On';
+  if (!shortNotation || num < 1000) return num.toFixed(0);
+  const suffixes = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc', 'Ud', 'Dd', 'Td', 'Qad', 'Qid', 'Sxd', 'Spd', 'Ocd', 'Nod', 'Vg'];
+  const order = Math.floor(Math.log10(num) / 3);
+  return (num / Math.pow(10, order * 3)).toFixed(1) + suffixes[order];
+}
+
+function calculateOfflineProgress(lastActiveTime) {
+  const currentTime = Date.now();
+  const timeDiff = (currentTime - lastActiveTime) / 1000;
+
+  if (timeDiff > 60) {
+    const offlineLife = lifePerSecond * timeDiff;
+
+    const humanProduction = Math.floor((humans * timeDiff) / 100);
+    const animalProduction = Math.floor((animals * timeDiff) / 100);
+
+    life += offlineLife;
+    totalLifeProduced += offlineLife;
+    humansCreated += humanProduction;
+    animalsCreated += animalProduction;
+
+    const offlineSeconds = Math.floor(timeDiff);
+    gameSeconds += offlineSeconds % 86400;
+    const additionalDays = Math.floor(offlineSeconds / 86400);
+    gameDays += additionalDays % 365;
+    gameYears += Math.floor(additionalDays / 365);
+
+    while (gameSeconds >= 86400) {
+      gameSeconds -= 86400;
+      gameDays++;
+    }
+    while (gameDays >= 365) {
+      gameDays -= 365;
+      gameYears++;
+    }
+
     updateStats();
-    autosave();
-    autoload();
-    initializeAudio();
-    document.getElementById('exit-save-game').addEventListener('click', saveAndExt);
-    camera.position.z = targetZoom;
-    detectGPUCapabilities();
-    initializeGraphicsSettings();
-    enforceLockedMaterialSettings();
-    initializeDivineUpgrades();
-    if (hasDLC) {
-      const dlcTab = document.querySelector('[data-tab="dlc"]');
-      if (dlcTab) {
-        dlcTab.style.display = 'block';
-      }
-      document.getElementById('dlc-tab').style.display = 'block';
-    } else {
-      const dlcTab = document.querySelector('[data-tab="dlc"]');
-      if (dlcTab) {
-        dlcTab.style.display = 'none';
-      }
-      document.getElementById('dlc-tab').style.display = 'none';
-    }
-    document.getElementById('planet-upgrade').addEventListener('click', handlePlanetUpgrade);
-    document.getElementById('human-upgrade').addEventListener('click', handleHumanUpgrade);
-    document.getElementById('animal-upgrade').addEventListener('click', handleAnimalUpgrade);
-    document.getElementById('click-upgrade').addEventListener('click', handleClickUpgrade);
-    document.getElementById('education-upgrade').addEventListener('click', handleEducationUpgrade);
-    document.getElementById('technology-upgrade').addEventListener('click', handleTechnologyUpgrade); 
-    document.getElementById('ecosystem-upgrade').addEventListener('click', handleEcosystemUpgrade);
-    document.getElementById('biodiversity-upgrade').addEventListener('click', handleBiodiversityUpgrade);
+
+    return {
+      lifeGained: offlineLife,
+      timePassed: timeDiff,
+      humansGained: humanProduction,
+      animalsGained: animalProduction
+    };
   }
 
-  document.addEventListener('DOMContentLoaded', initializeGame);
+  return null;
+}
 
-  function isLocalStorageAvailable() {
-    try {
-      const test = '__storage_test__';
-      localStorage.setItem(test, test);
-      localStorage.removeItem(test);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-  let totalLifeProduced = 0;
-  let totalClicks = 0;
-  let humansCreated = 0;
-  let animalsCreated = 0;
-  let researchLevel = 0;
-  let innovationLevel = 0; 
-  let cultureLevel = 0;
-  let explorationLevel = 0;
-  let sustainabilityLevel = 0;
-  let energyLevel = 0;
+function showOfflineProgressNotification(lifeGained, timePassed, humansGained, animalsGained) {
+  const notification = document.createElement('div');
+  notification.id = 'offline-progress-notification';
+  notification.innerHTML = `
+    <p>🌟 Welcome Back, Creator!</p>
+    <p>⏱️ Offline for ${formatTime(timePassed)}</p>
+    <p><strong>Evolution Progress:</strong></p>
+    <p>🧬 ${formatNumber(lifeGained)} Life Energy</p>
+    ${humansGained > 0 ? `<p>👥 ${formatNumber(humansGained)} New Humans</p>` : ''}
+    ${animalsGained > 0 ? `<p>🐾 ${formatNumber(animalsGained)} New Animals</p>` : ''}
+  `;
+  
+  // Enhanced notification styling
+  notification.style.transform = 'translateX(-50%) translateY(20px)';
+  notification.style.opacity = '0';
+  document.body.appendChild(notification);
 
-  let researchUpgradeCost = 400;
-  let innovationUpgradeCost = 600;
-  let cultureUpgradeCost = 450; 
-  let explorationUpgradeCost = 800;
-  let sustainabilityUpgradeCost = 550;
-  let energyUpgradeCost = 700;
+  // Smooth entrance animation
+  gsap.to(notification, {
+    opacity: 1,
+    y: 0,
+    duration: 0.6,
+    ease: 'back.out(1.7)'
+  });
 
-  function initializeAudio() {
-    audioPlayer = new Audio();
-    audioPlayer.src = 'audio/clicksound.mp3';
-    audioPlayer.preload = 'auto';
-    musicPlayer = new Audio();
-    musicPlayer.src = 'audio/background.mp3';
-    musicPlayer.preload = 'auto';
-    musicPlayer.loop = true;
-    if (musicEnabled) {
-      playBackgroundMusic();
-    }
+  setTimeout(() => {
+    gsap.to(notification, {
+      opacity: 0,
+      y: -20,
+      duration: 0.5,
+      ease: 'power2.in',
+      onComplete: () => notification.remove()
+    });
+  }, audioEnabled ? 3500 : 5000);
+}
+
+function loadGame() {
+  if (!isLocalStorageAvailable()) {
+    console.warn("localStorage is not available. Unable to load saved game.");
+    initializeDefaultValues();
+    return;
   }
-  function playClickSound() {
-    if (audioEnabled && audioPlayer) {
-      const sound = audioPlayer.cloneNode();
-      sound.play().catch(err => console.log('Click sound failed:', err));
-    }
-  }
-  function playBackgroundMusic() {
-    if (musicEnabled && musicPlayer) {
-      musicPlayer.play().catch(err => {
-        console.log('Background music start failed:', err);
-      });
-    }
-  }
-  function toggleBackgroundMusic() {
-    if (musicEnabled) {
-      playBackgroundMusic();
-    } else {
-      if (musicPlayer) {
-        musicPlayer.pause();
+
+  try {
+    const savedState = localStorage.getItem('planetIdleGame');
+    if (savedState) {
+      const gameState = JSON.parse(savedState);
+
+      life = gameState.life || 0;
+      humans = gameState.humans || 0;
+      animals = gameState.animals || 0;
+      planetsProduced = gameState.planetsProduced || 0;
+      lifePerSecond = gameState.lifePerSecond || 0;
+      lifePerClick = gameState.lifePerClick || 1;
+      planetUpgradeCost = gameState.planetUpgradeCost || 10;
+      humanUpgradeCost = gameState.humanUpgradeCost || 100;
+      animalUpgradeCost = gameState.animalUpgradeCost || 50;
+      clickUpgradeCost = gameState.clickUpgradeCost || 50;
+      educationLevel = gameState.educationLevel || 0;
+      technologyLevel = gameState.technologyLevel || 0;
+      ecosystemLevel = gameState.ecosystemLevel || 0;
+      biodiversityLevel = gameState.biodiversityLevel || 0;
+      educationUpgradeCost = gameState.educationUpgradeCost || 200;
+      technologyUpgradeCost = gameState.technologyUpgradeCost || 500;
+      ecosystemUpgradeCost = gameState.ecosystemUpgradeCost || 150;
+      biodiversityUpgradeCost = gameState.biodiversityUpgradeCost || 300;
+      agricultureUpgradeCost = gameState.agricultureUpgradeCost || 250;
+      conservationUpgradeCost = gameState.conservationUpgradeCost || 350;
+      totalLifeProduced = gameState.totalLifeProduced || 0;
+      totalClicks = gameState.totalClicks || 0;
+      humansCreated = gameState.humansCreated || 0;
+      animalsCreated = gameState.animalsCreated || 0;
+      gameSeconds = gameState.gameSeconds || 0;
+      gameDays = gameState.gameDays || 0;
+      gameYears = gameState.gameYears || 0;
+      audioEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
+      musicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
+
+      const soundBtn = document.getElementById('toggle-sound');
+      const musicBtn = document.getElementById('toggle-music');
+      if (soundBtn) soundBtn.textContent = `Sound Effects: ${audioEnabled ? 'On' : 'Off'}`;
+      if (musicBtn) musicBtn.textContent = `Music: ${musicEnabled ? 'On' : 'Off'}`;
+
+      const offlineProgress = calculateOfflineProgress(parseInt(localStorage.getItem('lastActiveTime') || Date.now().toString(), 10));
+      if (offlineProgress) {
+        showOfflineProgressNotification(
+          offlineProgress.lifeGained,
+          offlineProgress.timePassed,
+          offlineProgress.humansGained,
+          offlineProgress.animalsGained
+        );
       }
-    }
-  }
-  let life = 0;
-  let humans = 0;
-  let animals = 0;
-  let planetsProduced = 0;
-  let lifePerSecond = 0;
-  let lifePerClick = 1;
-  let planetUpgradeCost = 10;
-  let humanUpgradeCost = 100;
-  let animalUpgradeCost = 50;
-  let clickUpgradeCost = 50;
-  let educationLevel = 0;
-  let technologyLevel = 0;
-  let ecosystemLevel = 0;
-  let biodiversityLevel = 0;
-  let educationUpgradeCost = 200;
-  let technologyUpgradeCost = 500;
-  let ecosystemUpgradeCost = 150;
-  let biodiversityUpgradeCost = 300;
-  let agricultureUpgradeCost = 250;
-  let conservationUpgradeCost = 350;
-  let gameSeconds = 0;
-  let gameDays = 0;
-  let gameYears = 0;
-  const zoomSpeed = 0.5;
-  const minZoom = 2;
-  const maxZoom = 15;
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.z = 5;
-  function formatNumber(num) {
-    const shortNotation = document.getElementById('toggle-short-notation').textContent === 'Short Numbers: On';
-    if (!shortNotation || num < 1000) return num.toFixed(0);
-    const suffixes = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc', 'Ud', 'Dd', 'Td', 'Qad', 'Qid', 'Sxd', 'Spd', 'Ocd', 'Nod', 'Vg'];
-    const order = Math.floor(Math.log10(num) / 3);
-    return (num / Math.pow(10, order * 3)).toFixed(1) + suffixes[order];
-  }
-  function calculateOfflineProgress(lastActiveTime) {
-    const currentTime = Date.now();
-    const timeDiff = (currentTime - lastActiveTime) / 1000;
-    if (timeDiff > 60) {
-      const offlineLife = lifePerSecond * timeDiff;
-      const humanProduction = Math.floor(humans * timeDiff / 100);
-      const animalProduction = Math.floor(animals * timeDiff / 100);
-      life += offlineLife;
-      totalLifeProduced += offlineLife;
-      humansCreated += humanProduction;
-      animalsCreated += animalProduction;
-      const offlineSeconds = Math.floor(timeDiff);
-      gameSeconds += offlineSeconds % 86400;
-      const additionalDays = Math.floor(offlineSeconds / 86400);
-      gameDays += additionalDays % 365;
-      gameYears += Math.floor(additionalDays / 365);
-      while (gameSeconds >= 86400) {
-        gameSeconds -= 86400;
-        gameDays++;
-      }
-      while (gameDays >= 365) {
-        gameDays -= 365;
-        gameYears++;
-      }
+
+      updateCounters();
       updateStats();
-      return {
-        lifeGained: offlineLife,
-        timePassed: timeDiff,
-        humansGained: humanProduction,
-        animalsGained: animalProduction
-      };
-    }
-    return null;
-  }
-  function showOfflineProgressNotification(lifeGained, timePassed, humansGained, animalsGained) {
-    const notification = document.createElement('div');
-    notification.id = 'offline-progress-notification';
-    notification.innerHTML = `
-      <p>Welcome back!</p>
-      <p>You were away for ${formatTime(timePassed)}</p>
-      <p>You gained:</p>
-      <p>${formatNumber(lifeGained)} Life</p>
-      ${humansGained > 0 ? `<p>${formatNumber(humansGained)} Humans</p>` : ''}
-      ${animalsGained > 0 ? `<p>${formatNumber(animalsGained)} Animals</p>` : ''}
-    `;
-    document.body.appendChild(notification);
-    setTimeout(() => {
-      notification.style.opacity = '0';
-      setTimeout(() => {
-        notification.remove();
-      }, 1000);
-    }, audioEnabled ? 2000 : 4000);
-  }
-  function loadGame() {
-    if (!isLocalStorageAvailable() && window.require) {
-      console.warn("localStorage not available. Attempting Steam Cloud load...");
-      loadFromSteamCloud();
-      return;
-    }
-
-    try {
-      const savedState = localStorage.getItem('planetIdleGame');
-      if (savedState) {
-        const gameState = JSON.parse(savedState);
-        loadGameState(gameState);
-      } else {
-        console.log("No saved game found. Starting new game.");
-        initializeDefaultValues();
-      }
-    } catch (error) {
-      console.error("Failed to load game state:", error);
+      updateAllUpgradeButtonTexts();
+    } else {
+      console.log("No saved game found. Starting a new game.");
       initializeDefaultValues();
     }
+  } catch (error) {
+    console.error("Failed to load game state:", error);
+    initializeDefaultValues();
   }
-  function saveGame() {
-    try {
-      const gameState = {
-        life,
-        humans,
-        animals,
-        planetsProduced,
-        lifePerSecond,
-        lifePerClick,
-        planetUpgradeCost,
-        humanUpgradeCost,
-        animalUpgradeCost,
-        clickUpgradeCost,
-        educationLevel,
-        technologyLevel,
-        ecosystemLevel,
-        biodiversityLevel,
-        educationUpgradeCost,
-        technologyUpgradeCost,
-        ecosystemUpgradeCost,
-        biodiversityUpgradeCost,
-        agricultureUpgradeCost,
-        conservationUpgradeCost,
-        totalLifeProduced,
-        totalClicks,
-        humansCreated,
-        animalsCreated,
-        gameSeconds,
-        gameDays,
-        gameYears,
-        isSoundEnabled: audioEnabled,
-        isMusicEnabled: musicEnabled,
-        lastSaveTime: Date.now(),
-        graphicsSettings: graphicsSettings,
-        researchLevel,
-        innovationLevel,
-        cultureLevel,
-        explorationLevel,
-        sustainabilityLevel,
-        energyLevel,
-        divineEnergy,
-        divineUpgrades
-      };
+}
 
-      localStorage.setItem('planetIdleGame', JSON.stringify(gameState));
-      localStorage.setItem('lastActiveTime', Date.now().toString());
+function saveGame() {
+  if (!isLocalStorageAvailable()) {
+    console.warn("localStorage is not available. Game progress will not be saved.");
+    return;
+  }
 
-      if (window.require) {
-        greenworks.saveTextToFile('planetidlesave.json', JSON.stringify(gameState), (success) => {
-          if (!success) {
-            console.error('Failed to save to Steam Cloud');
-          }
-        });
-      }
+  try {
+    const gameState = {
+      life,
+      humans,
+      animals,
+      planetsProduced,
+      lifePerSecond,
+      lifePerClick,
+      planetUpgradeCost,
+      humanUpgradeCost,
+      animalUpgradeCost,
+      clickUpgradeCost,
+      educationLevel,
+      technologyLevel,
+      ecosystemLevel,
+      biodiversityLevel,
+      educationUpgradeCost,
+      technologyUpgradeCost,
+      ecosystemUpgradeCost,
+      biodiversityUpgradeCost,
+      agricultureUpgradeCost,
+      conservationUpgradeCost,
+      totalLifeProduced,
+      totalClicks,
+      humansCreated,
+      animalsCreated,
+      gameSeconds,
+      gameDays,
+      gameYears,
+      isSoundEnabled: audioEnabled,
+      isMusicEnabled: musicEnabled,
+    };
+    localStorage.setItem('planetIdleGame', JSON.stringify(gameState));
+    localStorage.setItem('lastActiveTime', Date.now().toString());
+  } catch (error) {
+    console.error("Failed to save game state:", error);
+  }
+}
 
-      const saveBtn = document.getElementById('exit-save-game');
-      const originalText = saveBtn.textContent;
-      saveBtn.textContent = 'Game Saved!';
-      setTimeout(() => {
-        saveBtn.textContent = originalText;
-      }, 1000);
-    } catch (error) {
-      console.error("Failed to save game state:", error);
-      alert('Failed to save game progress');  
+function autosave() {
+  saveGame();
+  console.log('Game autosaved');
+}
+
+function autoload() {
+  loadGame();
+  console.log('Game autoloaded');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadGame();
+  initMobileTabs();
+  updateStats();
+  autosave();
+  autoload();
+});
+
+setInterval(() => {
+  autosave();
+  autoload();
+}, 30000);
+
+document.getElementById('toggle-music').addEventListener('click', () => {
+  musicEnabled = !musicEnabled;
+  document.getElementById('toggle-music').textContent = `Music: ${musicEnabled ? 'On' : 'Off'}`;
+  if (musicEnabled) {
+    playBackgroundMusic();
+  } else {
+    if (musicPlayer) {
+      musicPlayer.pause();
     }
   }
-  function autosave() {
-    saveGame();
-    console.log('Game autosaved');
-  }
-  function autoload() {
-    loadGame();
-    console.log('Game autoloaded');
-  }
-  setInterval(() => {
-    autosave();
-    autoload();
-  }, 30000);
-  document.getElementById('toggle-music').addEventListener('click', () => {
-    musicEnabled = !musicEnabled;
-    document.getElementById('toggle-music').textContent = `Music: ${musicEnabled ? 'On' : 'Off'}`;
-    toggleBackgroundMusic();
-  });
-  document.getElementById('toggle-sound').addEventListener('click', () => {
-    audioEnabled = !audioEnabled;
-    document.getElementById('toggle-sound').textContent = `Sound Effects: ${audioEnabled ? 'On' : 'Off'}`;
-  });
-  function updateCameraPosition() {
-    const time = Date.now() * 0.0005;
-    if (typeof targetZoom !== 'undefined') {
-      camera.position.z += (targetZoom - camera.position.z) * 0.1;
-    }
-    camera.lookAt(earth.position);
-  }
-  function updateSharpness() {
-    const pixelRatio = window.devicePixelRatio;
-    renderer.setPixelRatio(pixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  }
-  function updateStats() {
-    const totalLifeStat = document.getElementById('total-life-stat');
-    const totalClicksStat = document.getElementById('total-clicks-stat');
-    const planetsProducedStat = document.getElementById('planets-produced-stat');
-    const humansCreatedStat = document.getElementById('humans-created-stat');
-    const animalsCreatedStat = document.getElementById('animals-created-stat');
-    const timePlayedStat = document.getElementById('time-played-stat');
-    if (totalLifeStat) totalLifeStat.textContent = formatNumber(totalLifeProduced);
-    if (totalClicksStat) totalClicksStat.textContent = formatNumber(totalClicks);
-    if (planetsProducedStat) planetsProducedStat.textContent = formatNumber(planetsProduced);
-    if (humansCreatedStat) humansCreatedStat.textContent = formatNumber(humansCreated);
-    if (animalsCreatedStat) animalsCreatedStat.textContent = formatNumber(animalsCreated);
-    if (timePlayedStat) timePlayedStat.textContent = formatTimePlayed();
-  }
-  function formatTimePlayed() {
-    const totalSeconds = gameYears * 365 * 86400 + gameDays * 86400 + gameSeconds;
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor(totalSeconds % 86400 / 3600);
-    const minutes = Math.floor(totalSeconds % 3600 / 60);
-    const seconds = totalSeconds % 60;
-    return `${days} days, ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  }
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    preserveDrawingBuffer: true
-  });
+});
+
+document.getElementById('toggle-sound').addEventListener('click', () => {
+  audioEnabled = !audioEnabled;
+  document.getElementById('toggle-sound').textContent = `Sound Effects: ${audioEnabled ? 'On' : 'Off'}`; 
+});
+
+function updateCameraPosition() {
+  const time = Date.now() * 0.0005;
+  camera.position.set(0, 0, 3); 
+  camera.lookAt(earth.position);
+}
+
+function updateSharpness() {
+  const pixelRatio = window.devicePixelRatio;
+  renderer.setPixelRatio(pixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  document.getElementById('game-container').appendChild(renderer.domElement);
+}
 
-  const starsGeometry = new THREE.BufferGeometry();
-  const starsMaterial = new THREE.PointsMaterial({
-    color: 0xFFFFFF,
-    size: 0.1,
-    transparent: true,
-    opacity: starMaterialUniforms.opacity.value,
-    blending: THREE.AdditiveBlending
-  });
-
-  function updateStarField() {
-    const verticesCount = graphicsSettings.starsVerticesCount[graphicsSettings.starsQuality];
-    const starsVertices = [];
-    const starsSizes = new Float32Array(verticesCount);
-    const starsColors = new Float32Array(verticesCount * 3);
-
-    for (let i = 0; i < verticesCount; i++) {
-      const x = (Math.random() - 0.5) * 2000;
-      const y = (Math.random() - 0.5) * 2000;
-      const z = (Math.random() - 0.5) * 2000;
-      starsVertices.push(x, y, z);
-      
-      // Random star sizes
-      starsSizes[i] = Math.random() * 0.1 + 0.05;
-      
-      // Random star colors (white to blue-ish)
-      const r = Math.random() * 0.3 + 0.7;
-      const g = Math.random() * 0.3 + 0.7;
-      const b = 1.0;
-      starsColors[i * 3] = r;
-      starsColors[i * 3 + 1] = g;
-      starsColors[i * 3 + 2] = b;
-    }
-
-    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
-    starsGeometry.setAttribute('size', new THREE.Float32BufferAttribute(starsSizes, 1));
-    starsGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starsColors, 3));
-    
-    starField.geometry = starsGeometry;
-    starField.material = starsMaterial;
-  }
-
-  const starField = new THREE.Points(starsGeometry, starsMaterial);
-  const starFieldGroup = new THREE.Group();
-  starFieldGroup.add(starField);
-  scene.add(starFieldGroup);
-  const textureLoader = new THREE.TextureLoader();
-  earthTexture = textureLoader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
-  earthNormalMap = textureLoader.load('https://threejs.org/examples/textures/planets/earth_normal_2048.jpg');
-  earthSpecularMap = textureLoader.load('https://threejs.org/examples/textures/planets/earth_specular_2048.jpg');
-  cloudTexture = textureLoader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png');
-  moonTexture = textureLoader.load('https://threejs.org/examples/textures/planets/moon_1024.jpg');
-  moonBumpMap = textureLoader.load('https://threejs.org/examples/textures/planets/moon_bump.jpg');
-
-  const earthMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-      diffuseMap: { value: earthTexture },
-      bumpMap: { value: earthNormalMap },
-      specularMap: { value: earthSpecularMap },
-      ambientLight: { value: new THREE.Color(0x404040) }
-    },
-    vertexShader: earthVertexShader,
-    fragmentShader: earthFragmentShader
-  });
-
-  const cloudMaterial = new THREE.MeshPhongMaterial({
-    map: cloudTexture,
-    transparent: LOCKED_CLOUD_SETTINGS.transparent,
-    opacity: LOCKED_CLOUD_SETTINGS.opacity,
-    depthWrite: LOCKED_CLOUD_SETTINGS.depthWrite,
-    emissive: LOCKED_CLOUD_SETTINGS.emissive,
-    emissiveIntensity: LOCKED_CLOUD_SETTINGS.emissiveIntensity
-  });
+function updateStats() {
+  const totalLifeStat = document.getElementById('total-life-stat');
+  const totalClicksStat = document.getElementById('total-clicks-stat');
+  const planetsProducedStat = document.getElementById('planets-produced-stat');
+  const humansCreatedStat = document.getElementById('humans-created-stat');
+  const animalsCreatedStat = document.getElementById('animals-created-stat');
+  const timePlayedStat = document.getElementById('time-played-stat');
   
-  const earthGeometry = new THREE.SphereGeometry(1, 64, 64);
-  const earth = new THREE.Mesh(earthGeometry, earthMaterial);
-  scene.add(earth);
-  const cloudGeometry = new THREE.SphereGeometry(1.01, 64, 64);
-  const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
-  earth.add(clouds);
+  if (totalLifeStat) totalLifeStat.textContent = formatNumber(totalLifeProduced);
+  if (totalClicksStat) totalClicksStat.textContent = formatNumber(totalClicks);
+  if (planetsProducedStat) planetsProducedStat.textContent = formatNumber(planetsProduced);
+  if (humansCreatedStat) humansCreatedStat.textContent = formatNumber(humansCreated);
+  if (animalsCreatedStat) animalsCreatedStat.textContent = formatNumber(animalsCreated);
+  if (timePlayedStat) timePlayedStat.textContent = formatTimePlayed();
+}
 
-  function createMoon() {
-    const moonGeometry = new THREE.SphereGeometry(0.27, 32, 32);
-    moonMaterial = new THREE.MeshPhongMaterial({
-      map: moonTexture,
-      bumpMap: moonBumpMap,
-      bumpScale: LOCKED_MOON_SETTINGS.bumpScale,
-      specular: LOCKED_MOON_SETTINGS.specular,
-      shininess: LOCKED_MOON_SETTINGS.shininess,
-      emissive: LOCKED_MOON_SETTINGS.emissive,
-      emissiveIntensity: LOCKED_MOON_SETTINGS.emissiveIntensity
-    });
-    moon = new THREE.Mesh(moonGeometry, moonMaterial);
-    moonOrbit = new THREE.Object3D();
-    moonOrbit.add(moon);
-    moon.position.x = 2.5;
-    scene.add(moonOrbit);
-  }
-  createMoon();
-  const ambientLight = new THREE.AmbientLight(0x404040);
-  scene.add(ambientLight);
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(5, 3, 5);
-  scene.add(directionalLight);
-  function updateTimeCounter() {
-    gameSeconds += gameTimeMultiplier;
-    if (gameSeconds >= 86400) {
-      gameSeconds = 0;
-      gameDays++;
-      if (gameDays >= 365) {
-        gameDays = 0;
-        gameYears++;
-      }
-    }
-    const hours = Math.floor(gameSeconds / 3600);
-    const minutes = Math.floor(gameSeconds % 3600 / 60);
-    const seconds = gameSeconds % 60;
-    const timeString = `Year ${gameYears}, Day ${gameDays}, ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    const timeCounter = document.getElementById('time-counter');
-    if (timeCounter) timeCounter.textContent = timeString;
-  }
-  function animate() {
-    enforceLockedMaterialSettings();
-    requestAnimationFrame(animate);
-    starFieldGroup.rotation.y += 0.001;
-    earth.rotation.y += 0.001;
-    clouds.rotation.y += 0.001 * 1.1;
-    moon.rotation.y += 0.001;
-    moonOrbit.rotation.y += 0.001;
-    if (typeof targetZoom !== 'undefined') {
-      updateCameraPosition();
-    }
-    updateTimeCounter();
-    if (RTX_SETTINGS.enabled) {
-      pathTracingRenderer.setSize(window.innerWidth * (graphicsSettings.resolutionScale / 100), window.innerHeight * (graphicsSettings.resolutionScale / 100));
-      pathTracingRenderer.render(scene, camera);
-    } else {
-      renderer.render(scene, camera);
-    }
-    
-    // Animate star field opacity
-    const pulseSpeed = 0.001;
-    starMaterialUniforms.opacity.value = 0.5 + Math.sin(Date.now() * pulseSpeed) * 0.3;
-    starField.material.opacity = starMaterialUniforms.opacity.value;
+function formatTimePlayed() {
+  const totalSeconds = gameYears * 365 * 86400 + gameDays * 86400 + gameSeconds;
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${days} days, ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
 
-    // Slow rotation for immersive effect
-    starFieldGroup.rotation.x += 0.0001;
-    starFieldGroup.rotation.z += 0.0001;
-  }
-  animate();
-  function updateCounters() {
-    const lifeCounter = document.getElementById('life-counter');
-    const humansCounter = document.getElementById('humans-counter');
-    const animalsCounter = document.getElementById('animals-counter');
-    const lpsCounter = document.getElementById('lps-counter');
-    
-    if (lifeCounter) lifeCounter.textContent = `Life: ${formatNumber(life)}`;
-    if (humansCounter) humansCounter.textContent = `Humans: ${formatNumber(humans)}`;
-    if (animalsCounter) animalsCounter.textContent = `Animals: ${formatNumber(animals)}`;
-    if (lpsCounter) lpsCounter.textContent = `Life per second: ${formatNumber(lifePerSecond)}`;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+document.getElementById('game-container').appendChild(renderer.domElement);
 
-    // Update button states based on affordability
-    document.querySelectorAll('.upgrade-btn').forEach(btn => {
-      const cost = parseInt(btn.textContent.match(/Cost: ([\d,]+)/)[1].replace(/,/g, ''));
-      btn.disabled = life < cost;
-      btn.style.opacity = life < cost ? '0.6' : '1';
-    });
-  }
-  document.getElementById('game-container').addEventListener('click', handleClick, true);
-  document.getElementById('game-container').addEventListener('touchstart', handleClick, true);
-  function handleClick(event) {
-    event.preventDefault();
+const starsGeometry = new THREE.BufferGeometry();
+const starsMaterial = new THREE.PointsMaterial({color: 0xFFFFFF, size: 0.1});
 
-    const gameContainer = document.getElementById('game-container');
-    const rect = gameContainer.getBoundingClientRect();
-    
-    const x = (event.clientX || event.touches && event.touches[0].pageX) - rect.left;
-    const y = (event.clientY || event.touches && event.touches[0].pageY) - rect.top;
+const starsVertices = [];
+for (let i = 0; i < 10000; i++) {
+  const x = (Math.random() - 0.5) * 2000;
+  const y = (Math.random() - 0.5) * 2000;
+  const z = (Math.random() - 0.5) * 2000;
+  starsVertices.push(x, y, z);
+}
 
-    if (x === undefined || y === undefined) return;
+starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+const starField = new THREE.Points(starsGeometry, starsMaterial);
+const starFieldGroup = new THREE.Group();
+starFieldGroup.add(starField);
+scene.add(starFieldGroup);
 
-    life += lifePerClick;
-    totalClicks++;
-    totalLifeProduced += lifePerClick;
-    updateCounters();
-    updateStats();
+const earthGeometry = new THREE.SphereGeometry(1, 64, 64);
+const earthMaterial = new THREE.MeshPhongMaterial({
+  map: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'),
+  bumpMap: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_normal_2048.jpg'),
+  bumpScale: 0.05,
+  specularMap: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_specular_2048.jpg'),
+  specular: new THREE.Color('grey')
+});
+const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+scene.add(earth);
 
-    if (!audioPlayer) {
-      initializeAudio();
-    }
-    playClickSound();
+const cloudGeometry = new THREE.SphereGeometry(1.01, 64, 64);
+const cloudMaterial = new THREE.MeshPhongMaterial({
+  map: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png'),
+  transparent: true,
+  opacity: 0.8
+});
+const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
+earth.add(clouds);
 
-    const clickText = document.createElement('div');
-    clickText.textContent = `+${lifePerClick}`;
-    clickText.classList.add('click-text');
-    clickText.style.left = `${x + rect.left}px`;  
-    clickText.style.top = `${y + rect.top}px`;
-    document.body.appendChild(clickText);
-
-    gsap.to(clickText, {
-      opacity: 0,
-      y: -50,
-      duration: 1,
-      onComplete: () => clickText.remove()
-    });
-
-    const particle = document.createElement('div');
-    particle.classList.add('life-particle');
-    particle.style.left = `${x + rect.left}px`;
-    particle.style.top = `${y + rect.top}px`;
-    document.body.appendChild(particle);
-    
-    const lifeCounter = document.getElementById('life-counter');
-    const lifeCounterRect = lifeCounter.getBoundingClientRect();
-    const targetX = lifeCounterRect.left + lifeCounterRect.width / 2;
-    const targetY = lifeCounterRect.top + lifeCounterRect.height / 2;
-
-    gsap.to(particle, {
-      x: targetX - (x + rect.left),
-      y: targetY - (y + rect.top),
-      scale: [1, 2, 0.5],
-      opacity: [1, 0.8, 0],
-      duration: 2,
-      ease: "power2.inOut",
-      onComplete: () => particle.remove()
-    });
-
-    gsap.to(particle, {
-      rotation: "random(-720, 720)",
-      duration: 2,
-      ease: "power1.inOut"
-    });
-
-    divineEnergy += getDivineEnergyPerClick();
-    updateDivineEnergy();
-  }
-  setInterval(() => {
-    life += lifePerSecond * globalProductionMultiplier;
-    totalLifeProduced += lifePerSecond * globalProductionMultiplier;
-    
-    // Check for miracles
-    if (Math.random() < miracleChance) {
-      const miracleBonus = Math.floor(lifePerSecond * 10);
-      life += miracleBonus;
-      totalLifeProduced += miracleBonus;
-      
-      const notification = document.createElement('div');
-      notification.textContent = `Divine Miracle! +${formatNumber(miracleBonus)} Life`;
-      notification.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(255,215,0,0.9);
-        padding: 20px;
-        border-radius: 10px;
-        color: white;
-        font-weight: bold;
-        z-index: 1000;
-        text-shadow: 0 0 10px gold;
-        animation: fadeOut 2s forwards;
-      `;
-  
-      document.body.appendChild(notification);
-      setTimeout(() => notification.remove(), 2000);
-    }
-    
-    updateCounters();
-    updateStats();
-  }, 1000);
-  document.getElementById('reset-game').addEventListener('click', resetGame);
-  function resetGame() {
-    if (confirm('Are you sure you want to reset the game? All progress will be lost.')) {
-      localStorage.removeItem('planetIdleGame');
-      targetZoom = 5;
-      camera.position.z = 5;
-      location.reload();
-    }
-  }
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    updateSharpness();
+function createMoon() {
+  const moonGeometry = new THREE.SphereGeometry(0.27, 32, 32);
+  const moonMaterial = new THREE.MeshPhongMaterial({
+    map: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/moon_1024.jpg'),
+    bumpMap: new THREE.TextureLoader().load('https://threejs.org/examples/textures/planets/moon_bump.jpg'),
+    bumpScale: 0.002,
   });
-  function initMobileTabs() {
-    const navButtons = document.querySelectorAll('.nav-btn');
-    const tabPanes = document.querySelectorAll('.tab-pane');
-    navButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tabName = btn.getAttribute('data-tab');
-        navButtons.forEach(b => b.classList.remove('active'));
-        tabPanes.forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById(`${tabName}-tab`).classList.add('active');
-      });
-    });
-    if (hasDLC && document.getElementById('mobile-nav')) {
-      const navBtn = document.createElement('button');
-      navBtn.className = 'nav-btn';
-      navBtn.setAttribute('data-tab', 'dlc');
-      navBtn.textContent = "God's Plan";
-      document.getElementById('mobile-nav').appendChild(navBtn);
-    }
-  }
-  document.addEventListener('DOMContentLoaded', initMobileTabs);
-  function initializeDefaultValues() {
-    life = 0;
-    humans = 0;
-    animals = 0;
-    planetsProduced = 0;
-    lifePerSecond = 0;
-    lifePerClick = 1;
-    planetUpgradeCost = 10;
-    humanUpgradeCost = 100;
-    animalUpgradeCost = 50;
-    clickUpgradeCost = 50;
-    educationLevel = 0;
-    technologyLevel = 0;
-    ecosystemLevel = 0;
-    biodiversityLevel = 0;
-    educationUpgradeCost = 200;
-    technologyUpgradeCost = 500;
-    ecosystemUpgradeCost = 150;
-    biodiversityUpgradeCost = 300;
-    agricultureUpgradeCost = 250;
-    conservationUpgradeCost = 350;
-    totalLifeProduced = 0;
-    totalClicks = 0;
-    humansCreated = 0;
-    animalsCreated = 0;
+  moon = new THREE.Mesh(moonGeometry, moonMaterial);
+  
+  moonOrbit = new THREE.Object3D();
+  moonOrbit.add(moon);
+  moon.position.x = 2.5;
+  
+  scene.add(moonOrbit);
+}
+
+createMoon();
+
+const ambientLight = new THREE.AmbientLight(0x404040);
+scene.add(ambientLight);
+
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.position.set(5, 3, 5);
+scene.add(directionalLight);
+
+function updateTimeCounter() {
+  gameSeconds++;
+  if (gameSeconds >= 86400) {
     gameSeconds = 0;
-    gameDays = 0;
-    gameYears = 0;
-    audioEnabled = true;
-    musicEnabled = true;
-    divineEnergy = 0;
-    divineUpgrades = {
-      createLife: 0,
-      controlTime: 0,
-      shapeReality: 0,
-      cosmicKnowledge: 0,
-      miracles: 0
-    };
-  }
-  document.addEventListener('keydown', event => {
-    switch (event.key.toLowerCase()) {
-      case 'z':
-        targetZoom = Math.max(minZoom, targetZoom - zoomSpeed);
-        break;
-      case 'o':
-        targetZoom = Math.min(maxZoom, targetZoom + zoomSpeed); 
-        break;
-    }
-  });
-  function saveAndExt() {
-    saveGame(); 
-    if (confirm('Your game has been saved. Would you like to exit now?')) {
-      window.close();
+    gameDays++;
+    if (gameDays >= 365) {
+      gameDays = 0;
+      gameYears++;
     }
   }
 
-  function initSteamAPI() {
-    if (window.require) {
-      if (!greenworks.init()) {
-        console.error('Steam API initialization failed');
-        return;
-      }
-      
-      if (greenworks.isDLCInstalled(DLC_APP_ID)) {
-        hasDLC = true;
-        const dlcTab = document.querySelector('[data-tab="dlc"]');
-        if (dlcTab) {
-          dlcTab.style.display = 'block';
-        }
-        document.getElementById('dlc-tab').style.display = 'block';
-      }
-    } else {
-      console.log('Steam API not available - running in browser mode');
-    }
-  }
+  const hours = Math.floor(gameSeconds / 3600);
+  const minutes = Math.floor((gameSeconds % 3600) / 60);
+  const seconds = gameSeconds % 60;
 
-  document.addEventListener('DOMContentLoaded', initSteamAPI);
-  function updateStarField() {
-    const verticesCount = graphicsSettings.starsVerticesCount[graphicsSettings.starsQuality];
-    const starsVertices = [];
-    const starsSizes = new Float32Array(verticesCount);
-    const starsColors = new Float32Array(verticesCount * 3);
+  const timeString = `Year ${gameYears}, Day ${gameDays}, ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  const timeCounter = document.getElementById('time-counter');
+  if (timeCounter) timeCounter.textContent = timeString;
+}
 
-    for (let i = 0; i < verticesCount; i++) {
-      const x = (Math.random() - 0.5) * 2000;
-      const y = (Math.random() - 0.5) * 2000;
-      const z = (Math.random() - 0.5) * 2000;
-      starsVertices.push(x, y, z);
-      
-      // Random star sizes
-      starsSizes[i] = Math.random() * 0.1 + 0.05;
-      
-      // Random star colors (white to blue-ish)
-      const r = Math.random() * 0.3 + 0.7;
-      const g = Math.random() * 0.3 + 0.7;
-      const b = 1.0;
-      starsColors[i * 3] = r;
-      starsColors[i * 3 + 1] = g;
-      starsColors[i * 3 + 2] = b;
-    }
+function animate() {
+  requestAnimationFrame(animate);
 
-    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
-    starsGeometry.setAttribute('size', new THREE.Float32BufferAttribute(starsSizes, 1));
-    starsGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starsColors, 3));
-    
-    starField.geometry = starsGeometry;
-    starField.material = starsMaterial;
-  }
+  starFieldGroup.rotation.y += 0.001;
 
-  function getDivineEnergyPerClick() {
-    return 1 + (divineUpgrades.createLife * DIVINE_MULTIPLIERS.createLife);
-  }
+  earth.rotation.y += 0.001;
+  clouds.rotation.y += 0.001 * 1.1;
 
-  function updateDivineEffects(type) {
-    switch(type) {
-      case 'createLife':
-        lifePerSecond += DIVINE_MULTIPLIERS.createLife;
-        break;
-      case 'controlTime':
-        gameTimeMultiplier = 1 + (divineUpgrades.controlTime * 0.1);
-        break;
-      case 'shapeReality':
-        globalProductionMultiplier = 1 + (divineUpgrades.shapeReality * 0.2);
-        break;
-      case 'cosmicKnowledge':
-        researchMultiplier = 1 + (divineUpgrades.cosmicKnowledge * 0.15);
-        break;
-      case 'miracles':
-        miracleChance = divineUpgrades.miracles * 0.05;
-        break;
-    }
-  }
+  moon.rotation.y += 0.001;
+  moonOrbit.rotation.y += 0.001;
 
-  function upgradeDivineAbility(type) {
-    const cost = DIVINE_UPGRADE_BASE_COSTS[type] * Math.pow(1.15, divineUpgrades[type]);
+  updateCameraPosition();
+  updateTimeCounter();
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+function updateCounters() {
+  const lifeCounter = document.getElementById('life-counter');
+  const humansCounter = document.getElementById('humans-counter');
+  const animalsCounter = document.getElementById('animals-counter');
+  const lpsCounter = document.getElementById('lps-counter');
   
-    if (divineEnergy >= cost) {
-      divineEnergy -= cost;
-      divineUpgrades[type]++;
-      
-      // Create particles effect
-      for (let i = 0; i < 10; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'miracle-particle';
-        const btn = document.getElementById(`${type}-upgrade`);
-        const rect = btn.getBoundingClientRect();
-        particle.style.left = rect.left + rect.width/2 + 'px';
-        particle.style.top = rect.top + rect.height/2 + 'px';
-        document.body.appendChild(particle);
-        
-        setTimeout(() => particle.remove(), 3000);
-      }
-      
-      updateDivineEffects(type);
-      updateDivineUpgradeButtons();
-      updateDivineEnergy();
-    }
-  }
+  if (lifeCounter) lifeCounter.textContent = `Life: ${formatNumber(life)}`;
+  if (humansCounter) humansCounter.textContent = `Humans: ${formatNumber(humans)}`;
+  if (animalsCounter) animalsCounter.textContent = `Animals: ${formatNumber(animals)}`;
+  if (lpsCounter) lpsCounter.textContent = `Life per second: ${formatNumber(lifePerSecond)}`;
+}
 
-  function triggerDivineBlessing() {
-    if (divineEnergy >= DIVINE_MIRACLES.divineBlessing.cost) {
-      divineEnergy -= DIVINE_MIRACLES.divineBlessing.cost;
-      divineBlessingActive = true;
-      blessingMultiplier = 10;
-      
-      // Visual effect
-      const earth = document.querySelector('canvas');
-      earth.style.filter = 'brightness(1.5) saturate(1.5)';
-      
-      setTimeout(() => {
-        divineBlessingActive = false;
-        blessingMultiplier = 1;
-        earth.style.filter = '';
-      }, 30000);
-      
-      updateDivineEnergy();
-    }
-  }
-
-  function triggerTimeFreeze() {
-    if (divineEnergy >= DIVINE_MIRACLES.timeFreeze.cost) {
-      divineEnergy -= DIVINE_MIRACLES.timeFreeze.cost;
-      timeFrozen = true;
-      
-      // Visual effect
-      const vignette = document.getElementById('vignette-overlay');
-      vignette.style.background = 'radial-gradient(circle, transparent 50%, rgba(0,127,255,0.3) 150%)';
-      vignette.classList.add('active');
-      
-      setTimeout(() => {
-        timeFrozen = false;
-        vignette.style.background = '';
-        vignette.classList.remove('active');
-      }, 30000);
-      
-      updateDivineEnergy();
-    }
-  }
-
-  function triggerCosmicBurst() {
-    if (divineEnergy >= DIVINE_MIRACLES.cosmicBurst.cost) {
-      divineEnergy -= DIVINE_MIRACLES.cosmicBurst.cost;
-      
-      // Trigger multiple miracles
-      for (let i = 0; i < 5; i++) {
-        setTimeout(() => {
-          const miracleBonus = Math.floor(lifePerSecond * 20);
-          life += miracleBonus;
-          totalLifeProduced += miracleBonus;
-          
-          createMiracleEffect();
-        }, i * 2000);
-      }
-      
-      updateDivineEnergy();
-    }
-  }
-
-  function createMiracleEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 200px;
-      height: 200px;
-      background: radial-gradient(circle, rgba(255,215,0,0.8), transparent);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 1000;
-      animation: miraclePulse 2s ease-out forwards;
-    `;
-  
-    document.body.appendChild(effect);
-    setTimeout(() => effect.remove(), 2000);
-  }
-
-  function enforceLockedMaterialSettings() {
-    // Earth
-    if (earth && earth.material) {
-      earth.material.uniforms.ambientLight.value = new THREE.Color(0x404040);
-    }
-
-    // Moon
-    if (moon && moon.material) {
-      moon.material.bumpScale = LOCKED_MOON_SETTINGS.bumpScale;
-      moon.material.specular = LOCKED_MOON_SETTINGS.specular;
-      moon.material.shininess = LOCKED_MOON_SETTINGS.shininess;
-      moon.material.emissive = LOCKED_MOON_SETTINGS.emissive;
-      moon.material.emissiveIntensity = LOCKED_MOON_SETTINGS.emissiveIntensity;
-      moon.material.opacity = LOCKED_MOON_SETTINGS.opacity;
-      moon.material.transparent = LOCKED_MOON_SETTINGS.transparent;
-      moon.material.envMapIntensity = LOCKED_MOON_SETTINGS.envMapIntensity;
-    }
-
-    // Clouds
-    if (clouds && clouds.material) {
-      clouds.material.opacity = LOCKED_CLOUD_SETTINGS.opacity;
-      clouds.material.transparent = LOCKED_CLOUD_SETTINGS.transparent;
-      clouds.material.depthWrite = LOCKED_CLOUD_SETTINGS.depthWrite;
-      clouds.material.emissive = LOCKED_CLOUD_SETTINGS.emissive;
-      clouds.material.emissiveIntensity = LOCKED_CLOUD_SETTINGS.emissiveIntensity;
-    }
-  }
-  function initializeGraphicsSettings() {
-    document.getElementById('graphics-mode').addEventListener('change', applyGraphicsSettings);
-    document.getElementById('resolution-scale').addEventListener('change', applyGraphicsSettings);
-    document.getElementById('shadow-quality').addEventListener('change', applyGraphicsSettings);
-    document.getElementById('texture-quality').addEventListener('change', applyGraphicsSettings); 
-    document.getElementById('anti-aliasing').addEventListener('change', applyGraphicsSettings);
-    document.getElementById('post-processing').addEventListener('change', applyGraphicsSettings);
-    document.getElementById('gpu-optimization').addEventListener('change', applyGraphicsSettings);
-    document.getElementById('stars-quality').addEventListener('change', function() {
-      graphicsSettings.starsQuality = this.value;
-      updateStarField();
-    });
-
-    applyGraphicsSettings();
-  }
-
-  function applyGraphicsSettings() {
-    // Safely get elements, use defaults if not found
-    const graphicsMode = document.getElementById('graphics-mode')?.value || 'fidelity';
-    const resolutionScale = parseInt(document.getElementById('resolution-scale')?.value || 100) / 100;
-    const shadowQuality = document.getElementById('shadow-quality')?.value || 'high';
-    const textureQuality = document.getElementById('texture-quality')?.value || 'high';
-    const antiAliasing = document.getElementById('anti-aliasing')?.value || 'fxaa';
-    const postProcessing = document.getElementById('post-processing')?.value || 'high';
-    const gpuOptimization = document.getElementById('gpu-optimization')?.value || 'auto';
-
-    graphicsSettings.mode = graphicsMode;
-    graphicsSettings.resolutionScale = resolutionScale * 100;
-    graphicsSettings.shadowQuality = shadowQuality;
-    graphicsSettings.textureQuality = textureQuality;
-    graphicsSettings.antiAliasing = antiAliasing;
-    graphicsSettings.postProcessing = postProcessing;
-    graphicsSettings.gpuOptimization = gpuOptimization;
-
-    // Safely check for RTX elements
-    const rtxEnabled = document.getElementById('rtx-enabled')?.value === 'on';
-    const rtxSamples = parseInt(document.getElementById('rtx-samples')?.value || '1');
-    const rtxBounces = parseInt(document.getElementById('rtx-bounces')?.value || '2');
-    const rtxDenoise = document.getElementById('rtx-denoise')?.value === 'on';
-    const rtxEnvIntensity = parseFloat(document.getElementById('rtx-env-intensity')?.value || '1.0');
-
-    RTX_SETTINGS.enabled = rtxEnabled;
-    RTX_SETTINGS.samples = rtxSamples;
-    RTX_SETTINGS.bounces = rtxBounces;
-    RTX_SETTINGS.denoise = rtxDenoise;
-    RTX_SETTINGS.environmentIntensity = rtxEnvIntensity;
-
-    // Apply resolution scale
-    renderer.setPixelRatio(window.devicePixelRatio * resolutionScale);
-
-    // Apply shadow quality
-    switch(shadowQuality) {
-      case 'high':
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        break;
-      case 'medium':
-        renderer.shadowMap.type = THREE.PCFShadowMap;
-        break;
-      case 'low':
-        renderer.shadowMap.type = THREE.BasicShadowMap;
-        break;
-    }
-
-    // Apply GPU optimizations
-    if (gpuOptimization in gpuOptimizationProfiles) {
-      const profile = gpuOptimizationProfiles[gpuOptimization];
-      renderer.capabilities.precision = profile.shaderPrecision;
-      renderer.capabilities.maxAnisotropy = profile.textureAnisotropy;
-    }
-
-    // Resolution scale value display
-    const resScaleValue = document.getElementById('resolution-scale-value');
-    if (resScaleValue) {
-      resScaleValue.textContent = Math.round(resolutionScale * 100) + '%';
-    }
-
-    // Performance mode overrides
-    if (graphicsMode === 'performance') {
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
-      renderer.shadowMap.enabled = false;
-      renderer.capabilities.maxAnisotropy = 1;
-    }
-
-    updateSharpness();
-    const qualityLevel = graphicsSettings.starsQuality;
-    if (starField && starField.material) {
-      starField.material.size = qualityLevel === 'ultra' ? 0.15 : 
-                               qualityLevel === 'high' ? 0.12 :
-                               qualityLevel === 'medium' ? 0.1 : 0.08;
-                               
-      starMaterialUniforms.opacity.value = graphicsSettings.starsOpacity[qualityLevel];
-    }
-
-    updateStarField();
-  }
-  function detectGPUCapabilities() {
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-
-    if (!gl) {
-      console.warn('WebGL not supported, using fallback settings');
-      return;
-    }
-
-    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-    if (debugInfo) {
-      gpuInfo.vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
-      gpuInfo.renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-      
-      // Check for high-end GPU based on renderer string
-      gpuInfo.isHighEnd = 
-        gpuInfo.renderer.match(/RTX|GTX|RX\s*\d{4}/i) !== null;
-      
-      // Check GPU vendor
-      gpuInfo.isNvidia = gpuInfo.vendor.toLowerCase().includes('nvidia');
-      gpuInfo.isAMD = gpuInfo.vendor.toLowerCase().includes('amd');
-
-      // Auto-select optimization profile if element exists
-      const gpuOptSelect = document.getElementById('gpu-optimization');
-      if (gpuOptSelect) {
-        if (gpuInfo.isNvidia) {
-          gpuOptSelect.value = 'nvidia';
-          applyGraphicsSettings();
-        } else if (gpuInfo.isAMD) {
-          gpuOptSelect.value = 'amd'; 
-          applyGraphicsSettings();
-        }
-      }
-    }
-
-    // Log capabilities
-    console.log('GPU Vendor:', gpuInfo.vendor);
-    console.log('GPU Renderer:', gpuInfo.renderer);
-    console.log('High-end GPU:', gpuInfo.isHighEnd);
-    console.log('NVIDIA GPU:', gpuInfo.isNvidia);
-    console.log('AMD GPU:', gpuInfo.isAMD);
-  }
-  function initializeDefaultValues() {
-    life = 0;
-    humans = 0;
-    animals = 0;
-    planetsProduced = 0;
-    lifePerSecond = 0;
-    lifePerClick = 1;
-    planetUpgradeCost = 10;
-    humanUpgradeCost = 100;
-    animalUpgradeCost = 50;
-    clickUpgradeCost = 50;
-    educationLevel = 0;
-    technologyLevel = 0;
-    ecosystemLevel = 0;
-    biodiversityLevel = 0;
-    educationUpgradeCost = 200;
-    technologyUpgradeCost = 500;
-    ecosystemUpgradeCost = 150;
-    biodiversityUpgradeCost = 300;
-    agricultureUpgradeCost = 250;
-    conservationUpgradeCost = 350;
-    totalLifeProduced = 0;
-    totalClicks = 0;
-    humansCreated = 0;
-    animalsCreated = 0;
-    gameSeconds = 0;
-    gameDays = 0;
-    gameYears = 0;
-    audioEnabled = true;
-    musicEnabled = true;
-    divineEnergy = 0;
-    divineUpgrades = {
-      createLife: 0,
-      controlTime: 0,
-      shapeReality: 0,
-      cosmicKnowledge: 0,
-      miracles: 0
-    };
-  }
-  function loadGameState(gameState) {
-    life = gameState.life || 0;
-    humans = gameState.humans || 0;
-    animals = gameState.animals || 0;
-    planetsProduced = gameState.planetsProduced || 0;
-    lifePerSecond = gameState.lifePerSecond || 0;
-    lifePerClick = gameState.lifePerClick || 1;
-    planetUpgradeCost = gameState.planetUpgradeCost || 10;
-    humanUpgradeCost = gameState.humanUpgradeCost || 100;
-    animalUpgradeCost = gameState.animalUpgradeCost || 50;
-    clickUpgradeCost = gameState.clickUpgradeCost || 50;
-    educationLevel = gameState.educationLevel || 0;
-    technologyLevel = gameState.technologyLevel || 0;
-    ecosystemLevel = gameState.ecosystemLevel || 0;
-    biodiversityLevel = gameState.biodiversityLevel || 0;
-    educationUpgradeCost = gameState.educationUpgradeCost || 200;
-    technologyUpgradeCost = gameState.technologyUpgradeCost || 500;
-    ecosystemUpgradeCost = gameState.ecosystemUpgradeCost || 150;
-    biodiversityUpgradeCost = gameState.biodiversityUpgradeCost || 300;
-    agricultureUpgradeCost = gameState.agricultureUpgradeCost || 250;
-    conservationUpgradeCost = gameState.conservationUpgradeCost || 350;
-    totalLifeProduced = gameState.totalLifeProduced || 0;
-    totalClicks = gameState.totalClicks || 0;
-    humansCreated = gameState.humansCreated || 0;
-    animalsCreated = gameState.animalsCreated || 0;
-    gameSeconds = gameState.gameSeconds || 0;
-    gameDays = gameState.gameDays || 0;
-    gameYears = gameState.gameYears || 0;
-    audioEnabled = gameState.isSoundEnabled !== undefined ? gameState.isSoundEnabled : true;
-    musicEnabled = gameState.isMusicEnabled !== undefined ? gameState.isMusicEnabled : true;
-    graphicsSettings = {
-      mode: gameState.graphicsSettings?.mode || 'fidelity',
-      resolutionScale: gameState.graphicsSettings?.resolutionScale || 100,
-      shadowQuality: gameState.graphicsSettings?.shadowQuality || 'high',
-      textureQuality: gameState.graphicsSettings?.textureQuality || 'high', 
-      antiAliasing: gameState.graphicsSettings?.antiAliasing || 'fxaa',
-      postProcessing: gameState.graphicsSettings?.postProcessing || 'high',
-      gpuOptimization: gameState.graphicsSettings?.gpuOptimization || 'auto',
-      starsQuality: gameState.graphicsSettings?.starsQuality || 'high',
-      threeJsSettings: {
-        pixelRatio: window.devicePixelRatio,
-        toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 1.0,
-        outputEncoding: THREE.sRGBEncoding
-      },
-      starsVerticesCount: {
-        ultra: 50000,
-        high: 25000,
-        medium: 12500,
-        low: 6000
-      },
-      starsOpacity: {
-        ultra: 1.0,
-        high: 0.8,
-        medium: 0.6,
-        low: 0.4
-      }
-    };
-
-    if (gameState.divineEnergy !== undefined) {
-      divineEnergy = gameState.divineEnergy;
-    }
-    if (gameState.divineUpgrades) {
-      divineUpgrades = gameState.divineUpgrades;
-    } else {
-      divineUpgrades = {
-        createLife: 0,
-        controlTime: 0,
-        shapeReality: 0,
-        cosmicKnowledge: 0,
-        miracles: 0
-      };
-    }
-
-    const soundBtn = document.getElementById('toggle-sound');
-    const musicBtn = document.getElementById('toggle-music');
-    if (soundBtn) soundBtn.textContent = `Sound Effects: ${audioEnabled ? 'On' : 'Off'}`;
-    if (musicBtn) musicBtn.textContent = `Music: ${musicEnabled ? 'On' : 'Off'}`;
-    document.getElementById('gpu-optimization').value = graphicsSettings.gpuOptimization;
-    document.getElementById('stars-quality').value = graphicsSettings.starsQuality;
-
+function upgradePlanet() {
+  if (life >= planetUpgradeCost) {
+    life -= planetUpgradeCost;
+    planetsProduced++;
+    totalLifeProduced += lifePerClick; 
+    lifePerSecond += 0.1;
+    planetUpgradeCost = Math.floor(planetUpgradeCost * 1.5);
+    updateUpgradeButtonText('planet-upgrade', 'Upgrade Planet', planetUpgradeCost);
     updateCounters();
     updateStats();
-    updateAllUpgradeButtonTexts();
-
-    if (gameState.graphicsSettings) {
-      document.getElementById('graphics-mode').value = graphicsSettings.mode;
-      document.getElementById('resolution-scale').value = graphicsSettings.resolutionScale;
-      document.getElementById('shadow-quality').value = graphicsSettings.shadowQuality;
-      document.getElementById('texture-quality').value = graphicsSettings.textureQuality;
-      document.getElementById('anti-aliasing').value = graphicsSettings.antiAliasing;
-      document.getElementById('post-processing').value = graphicsSettings.postProcessing;
-      
-      applyGraphicsSettings();
-    }
-    enforceLockedMaterialSettings();
-    updateDivineEnergy();
-    updateDivineUpgradeButtons();
-    initializeDivineUpgrades();
-    if (hasDLC) {
-      const dlcTab = document.querySelector('[data-tab="dlc"]');
-      if (dlcTab) {
-        dlcTab.style.display = 'block';
-      }
-      document.getElementById('dlc-tab').style.display = 'block';
-    } else {
-      const dlcTab = document.querySelector('[data-tab="dlc"]');
-      if (dlcTab) {
-        dlcTab.style.display = 'none'; 
-      }
-      document.getElementById('dlc-tab').style.display = 'none';
-    }
   }
+}
 
-  function loadFromSteamCloud() {
-    greenworks.readTextFromFile('planetidlesave.json', (success, data) => {
-      if (success) {
-        const gameState = JSON.parse(data);
-        loadGameState(gameState);
-      } else {
-        console.log("No saved game found in Steam Cloud. Starting a new game.");
-        initializeDefaultValues();
+function createHumans() {
+  if (life >= humanUpgradeCost) {
+    life -= humanUpgradeCost;
+    humans += 10;
+    humansCreated += 10; 
+    lifePerSecond += 1;
+    humanUpgradeCost = Math.floor(humanUpgradeCost * 1.5);
+    updateUpgradeButtonText('human-upgrade', 'Create Humans', humanUpgradeCost);
+    updateCounters();
+    updateStats();
+  }
+}
+
+function createAnimals() {
+  if (life >= animalUpgradeCost) {
+    life -= animalUpgradeCost;
+    animals += 5;
+    animalsCreated += 5; 
+    lifePerSecond += 0.5;
+    animalUpgradeCost = Math.floor(animalUpgradeCost * 1.3);
+    updateUpgradeButtonText('animal-upgrade', 'Create Animals', animalUpgradeCost);
+    updateCounters();
+    updateStats();
+  }
+}
+
+function upgradeClick() {
+  if (life >= clickUpgradeCost) {
+    life -= clickUpgradeCost;
+    lifePerClick += 1;
+    clickUpgradeCost = Math.floor(clickUpgradeCost * 1.5);
+    updateUpgradeButtonText('click-upgrade', 'Upgrade Click', clickUpgradeCost);
+    updateCounters();
+  }
+}
+
+function upgradeEducation() {
+  if (life >= educationUpgradeCost) {
+    life -= educationUpgradeCost;
+    educationLevel++;
+    lifePerSecond += 2;
+    educationUpgradeCost = Math.floor(educationUpgradeCost * 1.5);
+    updateUpgradeButtonText('education-upgrade', 'Education System', educationUpgradeCost);
+    updateCounters();
+  }
+}
+
+function upgradeTechnology() {
+  if (life >= technologyUpgradeCost) {
+    life -= technologyUpgradeCost;
+    technologyLevel++;
+    lifePerSecond += 5;
+    technologyUpgradeCost = Math.floor(technologyUpgradeCost * 1.6);
+    updateUpgradeButtonText('technology-upgrade', 'Technological Advancement', technologyUpgradeCost);
+    updateCounters();
+  }
+}
+
+function upgradeEcosystem() {
+  if (life >= ecosystemUpgradeCost) {
+    life -= ecosystemUpgradeCost;
+    ecosystemLevel++;
+    lifePerSecond += 1.5;
+    ecosystemUpgradeCost = Math.floor(ecosystemUpgradeCost * 1.4);
+    updateUpgradeButtonText('ecosystem-upgrade', 'Enhance Ecosystem', ecosystemUpgradeCost);
+    updateCounters();
+  }
+}
+
+function upgradeBiodiversity() {
+  if (life >= biodiversityUpgradeCost) {
+    life -= biodiversityUpgradeCost;
+    biodiversityLevel++;
+    lifePerSecond += 3;
+    biodiversityUpgradeCost = Math.floor(biodiversityUpgradeCost * 1.5);
+    updateUpgradeButtonText('biodiversity-upgrade', 'Increase Biodiversity', biodiversityUpgradeCost);
+    updateCounters();
+  }
+}
+
+function upgradeAgriculture() {
+  if (life >= agricultureUpgradeCost) {
+    life -= agricultureUpgradeCost;
+    lifePerSecond += 2;
+    agricultureUpgradeCost = Math.floor(agricultureUpgradeCost * 1.5);
+    updateUpgradeButtonText('agriculture-upgrade', 'Develop Agriculture', agricultureUpgradeCost);
+    updateCounters();
+  }
+}
+
+function upgradeConservation() {
+  if (life >= conservationUpgradeCost) {
+    life -= conservationUpgradeCost;
+    lifePerSecond += 3;
+    conservationUpgradeCost = Math.floor(conservationUpgradeCost * 1.5);
+    updateUpgradeButtonText('conservation-upgrade', 'Wildlife Conservation', conservationUpgradeCost);
+    updateCounters();
+  }
+}
+
+document.getElementById('planet-upgrade').addEventListener('click', upgradePlanet);
+document.getElementById('human-upgrade').addEventListener('click', createHumans);
+document.getElementById('animal-upgrade').addEventListener('click', createAnimals);
+document.getElementById('click-upgrade').addEventListener('click', upgradeClick);
+document.getElementById('education-upgrade').addEventListener('click', upgradeEducation);
+document.getElementById('technology-upgrade').addEventListener('click', upgradeTechnology);
+document.getElementById('ecosystem-upgrade').addEventListener('click', upgradeEcosystem);
+document.getElementById('biodiversity-upgrade').addEventListener('click', upgradeBiodiversity);
+document.getElementById('agriculture-upgrade').addEventListener('click', upgradeAgriculture);
+document.getElementById('conservation-upgrade').addEventListener('click', upgradeConservation);
+
+function updateAllUpgradeButtonTexts() {
+  updateUpgradeButtonText('planet-upgrade', 'Upgrade Planet', planetUpgradeCost);
+  updateUpgradeButtonText('human-upgrade', 'Create Humans', humanUpgradeCost);
+  updateUpgradeButtonText('animal-upgrade', 'Create Animals', animalUpgradeCost);
+  updateUpgradeButtonText('click-upgrade', 'Upgrade Click', clickUpgradeCost);
+  updateUpgradeButtonText('education-upgrade', 'Education System', educationUpgradeCost);
+  updateUpgradeButtonText('technology-upgrade', 'Technological Advancement', technologyUpgradeCost);
+  updateUpgradeButtonText('ecosystem-upgrade', 'Enhance Ecosystem', ecosystemUpgradeCost);
+  updateUpgradeButtonText('biodiversity-upgrade', 'Increase Biodiversity', biodiversityUpgradeCost);
+  updateUpgradeButtonText('agriculture-upgrade', 'Develop Agriculture', agricultureUpgradeCost);
+  updateUpgradeButtonText('conservation-upgrade', 'Wildlife Conservation', conservationUpgradeCost);
+}
+
+function updateUpgradeButtonText(id, text, cost) {
+  document.getElementById(id).textContent = `${text} (Cost: ${formatNumber(cost)} Life)`;
+}
+
+document.getElementById('game-container').addEventListener('click', handleClick);
+document.getElementById('game-container').addEventListener('touchstart', handleClick);
+
+function handleClick(event) {
+  event.preventDefault();
+  const x = event.clientX || (event.touches && event.touches[0].clientX);
+  const y = event.clientY || (event.touches && event.touches[0].clientY);
+
+  if (x === undefined || y === undefined) return;
+
+  life += lifePerClick;
+  totalClicks++;
+  totalLifeProduced += lifePerClick;
+  updateCounters();
+  updateStats();
+  
+  if (!audioPlayer) {
+    initializeAudio();
+  }
+  
+  playClickSound();
+  
+  // Enhanced click feedback
+  const clickText = document.createElement('div');
+  clickText.textContent = `+${formatNumber(lifePerClick)}`;
+  clickText.classList.add('click-text');
+  clickText.style.left = `${x}px`;
+  clickText.style.top = `${y}px`;
+  clickText.style.fontSize = lifePerClick > 100 ? '28px' : '24px';
+  document.body.appendChild(clickText);
+
+  gsap.to(clickText, {
+    opacity: 0,
+    y: -60,
+    scale: 1.2,
+    duration: 1.2,
+    ease: 'power2.out',
+    onComplete: () => clickText.remove()
+  });
+
+  // Enhanced particle effect
+  const particle = document.createElement('div');
+  particle.classList.add('life-particle', 'enhanced-particle');
+  particle.style.left = `${x}px`;
+  particle.style.top = `${y}px`;
+  document.body.appendChild(particle);
+
+  const lifeCounter = document.getElementById('life-counter');
+  const lifeCounterRect = lifeCounter.getBoundingClientRect();
+  const targetX = lifeCounterRect.left + lifeCounterRect.width / 2;
+  const targetY = lifeCounterRect.top + lifeCounterRect.height / 2;
+
+  gsap.to(particle, {
+    x: targetX - x,
+    y: targetY - y,
+    opacity: 0,
+    scale: 0.3,
+    duration: 1.8,
+    ease: 'power2.in',
+    onComplete: () => particle.remove()
+  });
+
+  // Screen shake effect for big clicks
+  if (lifePerClick > 50) {
+    gsap.to('#game-container', {
+      x: Math.random() * 4 - 2,
+      y: Math.random() * 4 - 2,
+      duration: 0.1,
+      repeat: 3,
+      yoyo: true,
+      ease: 'power2.inOut',
+      onComplete: () => {
+        gsap.set('#game-container', { x: 0, y: 0 });
       }
     });
   }
+}
 
-  document.addEventListener('click', (e) => {
-    if (e.target.tagName === 'A' && e.target.href && window.require) {
-      e.preventDefault();
-      greenworks.activateGameOverlayToWebPage(e.target.href);
-    }
+setInterval(() => {
+  life += lifePerSecond;
+  totalLifeProduced += lifePerSecond; 
+  updateCounters();
+  updateStats();
+}, 1000);
+
+document.getElementById('reset-game').addEventListener('click', resetGame);
+
+function resetGame() {
+  if (confirm('Are you sure you want to reset the game? All progress will be lost.')) {
+    localStorage.removeItem('planetIdleGame');
+    location.reload();
+  }
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  updateSharpness();
+});
+
+function initMobileTabs() {
+  const navButtons = document.querySelectorAll('.nav-btn');
+  const tabPanes = document.querySelectorAll('.tab-pane');
+
+  navButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabName = btn.getAttribute('data-tab');
+
+      navButtons.forEach(b => b.classList.remove('active'));
+      tabPanes.forEach(p => p.classList.remove('active'));
+
+      btn.classList.add('active');
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+    });
   });
+}
 
-  function initSteamAPI() {
-    if (window.require) {
-      if (!greenworks.init()) {
-        console.error('Steam API initialization failed');
-        return;
-      }
-      
-      if (greenworks.isDLCInstalled(DLC_APP_ID)) {
-        hasDLC = true;
-        const dlcTab = document.querySelector('[data-tab="dlc"]');
-        if (dlcTab) {
-          dlcTab.style.display = 'block';
-        }
-        document.getElementById('dlc-tab').style.display = 'block';
-      }
-    } else {
-      console.log('Steam API not available - running in browser mode');
-    }
-  }
+document.addEventListener('DOMContentLoaded', initMobileTabs);
 
-  document.addEventListener('DOMContentLoaded', initSteamAPI);
-</script>
-<script>
-  // Add upgrade handler functions
-  function handlePlanetUpgrade() {
-    if (life >= planetUpgradeCost) {
-      life -= planetUpgradeCost;
-      planetsProduced++;
-      lifePerSecond += 1;
-      planetUpgradeCost = Math.floor(planetUpgradeCost * 1.15);
-      updateCounters();
-      updateStats();
-    }
-  }
-
-  function handleHumanUpgrade() {
-    if (life >= humanUpgradeCost) {
-      life -= humanUpgradeCost;
-      humans += 1;
-      humansCreated += 1;
-      lifePerSecond += 1;
-      humanUpgradeCost = Math.floor(humanUpgradeCost * 1.15);
-      updateCounters();
-      updateStats();
-    } 
-  }
-
-  function handleAnimalUpgrade() {
-    if (life >= animalUpgradeCost) {
-      life -= animalUpgradeCost;
-      animals += 1;
-      animalsCreated += 1;
-      lifePerSecond += 0.5;
-      animalUpgradeCost = Math.floor(animalUpgradeCost * 1.15);
-      updateCounters(); 
-      updateStats();
-    }
-  }
-
-  function handleClickUpgrade() {
-    if (life >= clickUpgradeCost) {
-      life -= clickUpgradeCost;
-      lifePerClick *= 1.5;
-      clickUpgradeCost = Math.floor(clickUpgradeCost * 1.15);
-      updateCounters();
-      updateStats();
-    }
-  }
-
-  function handleEducationUpgrade() {
-    if (life >= educationUpgradeCost) {
-      life -= educationUpgradeCost;
-      educationLevel++;
-      lifePerSecond *= 1.2;
-      educationUpgradeCost = Math.floor(educationUpgradeCost * 1.15);
-      updateCounters();
-      updateStats();
-    }
-  }
-
-  function handleTechnologyUpgrade() {
-    if (life >= technologyUpgradeCost) {
-      life -= technologyUpgradeCost;
-      technologyLevel++;
-      lifePerClick *= 1.2;
-      lifePerSecond *= 1.1;
-      technologyUpgradeCost = Math.floor(technologyUpgradeCost * 1.15);
-      updateCounters();
-      updateStats();
-    }
-  }
-
-  function handleEcosystemUpgrade() {
-    if (life >= ecosystemUpgradeCost) {
-      life -= ecosystemUpgradeCost;
-      ecosystemLevel++;
-      lifePerSecond *= 1.15;
-      ecosystemUpgradeCost = Math.floor(ecosystemUpgradeCost * 1.15);
-      updateCounters();
-      updateStats();
-    }
-  }
-
-  function handleBiodiversityUpgrade() {
-    if (life >= biodiversityUpgradeCost) {
-      life -= biodiversityUpgradeCost;
-      biodiversityLevel++;
-      lifePerSecond *= 1.25;
-      biodiversityUpgradeCost = Math.floor(biodiversityUpgradeCost * 1.15);
-      updateCounters();
-      updateStats();
-    }
-  }
-
-  function updateAllUpgradeButtonTexts() {
-    const upgrades = {
-      'planet-upgrade': planetUpgradeCost,
-      'human-upgrade': humanUpgradeCost,
-      'animal-upgrade': animalUpgradeCost,
-      'click-upgrade': clickUpgradeCost,
-      'education-upgrade': educationUpgradeCost,
-      'technology-upgrade': technologyUpgradeCost,
-      'ecosystem-upgrade': ecosystemUpgradeCost,
-      'biodiversity-upgrade': biodiversityUpgradeCost
-    };
-
-    for (const [id, cost] of Object.entries(upgrades)) {
-      const button = document.getElementById(id);
-      if (button) {
-        const label = id.split('-')[0];
-        button.textContent = `${label.charAt(0).toUpperCase() + label.slice(1)} Upgrade (Cost: ${formatNumber(cost)} Life)`;
-      }
-    }
-  }
+function initializeDefaultValues() {
+  life = 0;
+  humans = 0;
+  animals = 0;
+  planetsProduced = 0;
+  lifePerSecond = 0;
+  lifePerClick = 1;
+  planetUpgradeCost = 10;
+  humanUpgradeCost = 100;
+  animalUpgradeCost = 50;
+  clickUpgradeCost = 50;
+  educationLevel = 0;
+  technologyLevel = 0;
+  ecosystemLevel = 0;
+  biodiversityLevel = 0;
+  educationUpgradeCost = 200;
+  technologyUpgradeCost = 500;
+  ecosystemUpgradeCost = 150;
+  biodiversityUpgradeCost = 300;
+  agricultureUpgradeCost = 250;
+  conservationUpgradeCost = 350;
+  totalLifeProduced = 0;
+  totalClicks = 0;
+  humansCreated = 0;
+  animalsCreated = 0;
+  gameSeconds = 0;
+  gameDays = 0;
+  gameYears = 0;
+  audioEnabled = true;
+  musicEnabled = true;
+}
 </script>
 </body>
 </html>
